@@ -1,0 +1,24 @@
+{
+  "tasks": [
+    {
+      "name": "Auth module: register/login/JWT",
+      "status": "todo"
+    },
+    {
+      "name": "Creator profile + Service CRUD",
+      "status": "todo"
+    },
+    {
+      "name": "Appointment + Payment module",
+      "status": "todo"
+    },
+    {
+      "name": "AI assistant chat UI",
+      "status": "todo"
+    },
+    {
+      "name": "SolidJS frontend skeleton",
+      "status": "todo"
+    }
+  ]
+}
