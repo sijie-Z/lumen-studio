@@ -1,0 +1,82 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/common",
+    "crates/core",
+    "crates/db",
+    "crates/cache",
+    "crates/ai",
+    "crates/services",
+    "crates/api",
+]
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Web framework
+axum = { version = "0.8", features = ["macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace", "limit", "compression-gzip"] }
+
+# Database
+sea-orm = { version = "1.1", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros"] }
+sea-orm-migration = { version = "1.1", features = ["sqlx-postgres", "runtime-tokio-rustls"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Auth
+jsonwebtoken = "9"
+argon2 = "0.5"
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Config
+dotenvy = "0.15"
+config = { version = "0.14", features = ["toml"] }
+
+# Redis
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
+
+# UUID
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Decimal for money
+rust_decimal = { version = "1", features = ["serde"] }
+
+# HTTP client for AI service calls
+reqwest = { version = "0.12", features = ["json"] }
+
+# Validator
+validator = { version = "0.19", features = ["derive"] }
+
+# Rate limiting
+governor = "0.7"
+
+# gRPC for AI service
+tonic = "0.12"
+prost = "0.13"
+
+# WebSocket
+tokio-tungstenite = "0.24"
+futures-util = "0.3"
+
+# OpenTelemetry
+opentelemetry = "0.27"
+tracing-opentelemetry = "0.28"
+
+# Testing
+tokio-test = "0.4"
+axum-test = "16"
+once_cell = "1"
