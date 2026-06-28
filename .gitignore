@@ -1,0 +1,45 @@
+### Rust
+target/
+**/*.rs.bk
+*.pdb
+
+### IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+### OS
+.DS_Store
+Thumbs.db
+
+### Environment
+.env
+.env.local
+
+### Node / Frontend
+node_modules/
+dist/
+*.tsbuildinfo
+
+### Python
+__pycache__/
+*.py[cod]
+.venv/
+
+### Old project (keep for reference, don't commit new work)
+old_backend/
+old_frontend/
+logs/
+uploads/
+*.db
+
+### Temp
+*.tmp
+*.log
+*.zip
+*.docx
+.pytest_cache/
+.claude/
+.trae/
+package-lock.json
