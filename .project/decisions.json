@@ -41,6 +41,12 @@
       "reason": "MinIO is not running locally; uploads dir + ServeDir gives identical API surface",
       "impact": "UploadResult.url is stable; swap storage layer later without changing UI",
       "date": "2026-09-15 23:30"
+    },
+    {
+      "title": "AI chat with local fallback + OpenAI-compatible upstream",
+      "reason": "Works immediately without a key; set OPENAI_API_KEY/BASE_URL/MODEL to switch to a real LLM",
+      "impact": "POST /api/v1/ai/chat returns mode local|llm; UI stays identical",
+      "date": "2026-09-15 23:35"
     }
   ]
 }

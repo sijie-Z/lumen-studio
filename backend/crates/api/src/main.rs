@@ -34,7 +34,11 @@ async fn main() -> anyhow::Result<()> {
         "dev-only-secret-change-me".into()
     });
     let auth = AuthService::new(db.clone(), jwt_secret, 15 * 60, 7 * 24 * 60 * 60);
-    let app_state = AppState { db, auth };
+    let app_state = AppState {
+        db,
+        auth,
+        chat: ai::ChatClient::from_env(),
+    };
 
     let cors = CorsLayer::new()
         .allow_origin(Any)

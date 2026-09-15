@@ -13,6 +13,7 @@ import {
 import { createEffect, createSignal, For, Show } from "solid-js";
 import { fetchMe, isAuthenticated, uploadImage, type UploadResult } from "../lib/auth-api";
 import { useAuthStore } from "../stores/auth";
+import Assistant from "../components/ai/assistant";
 
 const GALLERY_KEY = "lumina.gallery";
 
@@ -290,6 +291,7 @@ export default function Dashboard() {
           </Show>
         </section>
       </main>
+      <Assistant />
     </div>
   );
 }

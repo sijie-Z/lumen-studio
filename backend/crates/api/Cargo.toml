@@ -8,6 +8,7 @@ app_core = { path = "../app_core" }
 common = { path = "../common" }
 services = { path = "../services" }
 db = { path = "../db" }
+ai = { path = "../ai" }
 sea-orm = { workspace = true }
 axum = { workspace = true }
 tower = { workspace = true }

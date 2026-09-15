@@ -41,6 +41,11 @@ def main() -> None:
         if not work_loaded:
             raise AssertionError("Featured work image did not load")
 
+        page.get_by_role("button", name="打开 AI 助手").click()
+        page.get_by_role("button", name="推荐摄影师").click()
+        page.wait_for_selector("text=平台已收录", timeout=10000)
+        page.get_by_role("button", name="关闭 AI 助手").click()
+
         page.goto("http://127.0.0.1:5173/register", wait_until="networkidle")
         page.locator('input[placeholder="lumina_user"]').fill(username)
         page.locator('input[placeholder="至少 8 位"]').fill("password123")

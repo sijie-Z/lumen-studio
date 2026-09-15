@@ -12,5 +12,6 @@ reqwest = { workspace = true }
 tonic = { workspace = true }
 prost = { workspace = true }
 thiserror = { workspace = true }
+anyhow = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }

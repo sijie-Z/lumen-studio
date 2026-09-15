@@ -56,3 +56,11 @@
 
 *2026-09-15 23:30*
 
+## ADR-008: AI chat with local fallback + OpenAI-compatible upstream
+
+**Reason**: Works immediately without a key; set OPENAI_API_KEY/BASE_URL/MODEL to switch to a real LLM
+
+**Impact**: POST /api/v1/ai/chat returns mode local|llm; UI stays identical
+
+*2026-09-15 23:35*
+

@@ -1,2 +1,3 @@
-﻿// AI integration - coming in next session
-pub fn placeholder() {}
+pub mod chat;
+
+pub use chat::{ChatClient, ChatMessage, ChatRequest, ChatResponse};

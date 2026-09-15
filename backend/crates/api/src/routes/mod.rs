@@ -1,4 +1,5 @@
 mod auth;
+mod ai;
 mod health;
 mod uploads;
 
@@ -9,5 +10,6 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .merge(health::router())
         .nest("/api/v1/auth", auth::router())
+        .nest("/api/v1/ai", ai::router())
         .nest("/api/v1", uploads::router())
 }

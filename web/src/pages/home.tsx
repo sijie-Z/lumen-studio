@@ -13,6 +13,7 @@ import {
 } from "lucide-solid";
 import SiteFooter from "../components/layout/site-footer";
 import SiteHeader from "../components/layout/site-header";
+import Assistant from "../components/ai/assistant";
 
 const categories = [
   { icon: Camera, title: "人像摄影", count: 1286, tint: "bg-amber/15 text-amber" },
@@ -197,6 +198,7 @@ export default function Home() {
       </main>
 
       <SiteFooter />
+      <Assistant />
     </div>
   );
 }

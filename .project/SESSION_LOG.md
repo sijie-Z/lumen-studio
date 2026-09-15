@@ -16,3 +16,10 @@
 - **Summary**: Backend image upload endpoint: multipart, auth, 15MB, local storage
 - **Next**: Complete: Backend image upload endpoint
 
+### [2026-09-15 23:35] main — AI assistant chat: backend LLM endpoint + frontend panel
+
+- **Task**: AI assistant chat: backend LLM endpoint + frontend panel
+- **Branch**: main
+- **Summary**: AI assistant chat: backend LLM endpoint + frontend panel
+- **Next**: Complete: AI assistant chat: backend LLM endpoint + frontend panel
+

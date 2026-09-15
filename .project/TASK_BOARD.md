@@ -13,4 +13,5 @@
 - Auth module: register/login/JWT
 - SolidJS web UI: login/register + dashboard + image upload
 - Backend image upload endpoint
+- AI assistant chat: backend LLM endpoint + frontend panel
 

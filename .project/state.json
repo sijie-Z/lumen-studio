@@ -1,20 +1,20 @@
 {
   "recent_files": [
+    "web/src/lib/ai-api.ts",
+    "web/src/components/ai/assistant.tsx",
+    "backend/crates/api/src/state.rs",
+    "backend/crates/api/src/routes/ai.rs",
+    "backend/crates/ai/src/chat.rs",
     "web/scripts/smoke_ui.py",
     "web/src/lib/auth-api.ts",
     "web/src/pages/dashboard.tsx",
     "web/src/pages/home.tsx",
-    "web/package.json",
-    "backend/crates/api/src/routes/uploads.rs",
-    "backend/Cargo.toml",
-    "backend/crates/api/src/middleware/auth.rs",
-    "backend/crates/api/src/routes/auth.rs",
-    "backend/crates/api/src/main.rs"
+    "web/package.json"
   ],
   "known_issues": [
     "Rust MSVC linker missing — need VS Build Tools or GNU toolchain"
   ],
-  "next_step": "Creator profile + Service CRUD + real work persistence",
+  "next_step": "Creator profile + Service CRUD + persist uploaded works",
   "branch": "main",
   "active_work": [
     {
@@ -23,6 +23,10 @@
     },
     {
       "name": "Backend image upload endpoint",
+      "status": "done"
+    },
+    {
+      "name": "AI assistant chat: backend LLM endpoint + frontend panel",
       "status": "done"
     }
   ]
