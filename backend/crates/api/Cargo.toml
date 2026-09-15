@@ -4,9 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-core = { path = "../core" }
+app_core = { path = "../app_core" }
 common = { path = "../common" }
 services = { path = "../services" }
+db = { path = "../db" }
+sea-orm = { workspace = true }
 axum = { workspace = true }
 tower = { workspace = true }
 tower-http = { workspace = true }

@@ -3,19 +3,22 @@
 **Branch**: main
 
 ## Active Work
-- [~] Auth module: register/login/JWT
+- [x] Auth module: register/login/JWT
 
 ## Recent Changes
+- backend/crates/api/src/middleware/auth.rs
+- backend/crates/api/src/routes/auth.rs
+- backend/crates/api/src/main.rs
+- backend/crates/services/src/dto/auth.rs
+- backend/crates/services/src/auth_service.rs
+- backend/crates/db/src/entities/user.rs
+- backend/crates/db/src/migrations/m20260915_000001_create_users.rs
+- backend/crates/db/src/lib.rs
 - backend/crates/core/src/entities/user.rs
 - backend/crates/common/Cargo.toml
-- backend/rust-toolchain.toml
-- backend/crates/core/src/value_objects/money.rs
-- backend/crates/core/src/enums.rs
-- backend/crates/common/src/error.rs
-- backend/Cargo.toml
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
 
 ## Next Step
-- Complete: Auth module: register/login/JWT
+- Creator profile + Service CRUD module

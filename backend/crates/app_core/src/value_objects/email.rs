@@ -46,3 +46,19 @@ impl std::fmt::Display for Email {
         write!(f, "{}", self.0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn accepts_valid_email_and_normalizes_case() {
+        let email = Email::new("User@Example.COM").unwrap();
+        assert_eq!(email.as_str(), "user@example.com");
+    }
+
+    #[test]
+    fn rejects_missing_at() {
+        assert!(Email::new("invalid.example.com").is_err());
+    }
+}

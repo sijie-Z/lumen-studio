@@ -51,3 +51,26 @@ impl TimeSlot {
         self.start < other.end && other.start < self.end
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn slot(start: DateTime<Utc>, duration_minutes: i64) -> TimeSlot {
+        TimeSlot::from_duration(start, duration_minutes).unwrap()
+    }
+
+    #[test]
+    fn detects_overlapping_slots() {
+        let base = Utc::now() + Duration::days(1);
+        let a = slot(base, 120);
+        let b = slot(base + Duration::minutes(60), 120);
+        assert!(a.overlaps(&b));
+    }
+
+    #[test]
+    fn rejects_slots_shorter_than_one_hour() {
+        let base = Utc::now() + Duration::days(1);
+        assert!(TimeSlot::from_duration(base, 30).is_err());
+    }
+}

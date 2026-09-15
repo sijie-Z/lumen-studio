@@ -45,6 +45,13 @@ pub enum AppError {
 }
 
 impl AppError {
+    pub fn from_anyhow<E>(err: E) -> Self
+    where
+        E: std::error::Error + Send + Sync + 'static,
+    {
+        AppError::Internal(anyhow::Error::new(err))
+    }
+
     fn status_code(&self) -> StatusCode {
         match self {
             AppError::BadRequest(_) => StatusCode::BAD_REQUEST,

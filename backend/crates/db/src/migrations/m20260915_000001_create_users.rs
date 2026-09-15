@@ -1,0 +1,143 @@
+﻿use sea_orm_migration::prelude::*;
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table(
+                Table::create()
+                    .table(Users::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Users::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Users::Username)
+                            .string()
+                            .string_len(50)
+                            .not_null()
+                            .unique_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Users::PasswordHash)
+                            .string()
+                            .string_len(256)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Users::Nickname)
+                            .string()
+                            .string_len(50)
+                            .not_null()
+                            .default("anonymous"),
+                    )
+                    .col(ColumnDef::new(Users::AvatarUrl).string().string_len(255))
+                    .col(
+                        ColumnDef::new(Users::Gender)
+                            .string()
+                            .string_len(10)
+                            .not_null()
+                            .default("unknown"),
+                    )
+                    .col(ColumnDef::new(Users::DateOfBirth).string())
+                    .col(ColumnDef::new(Users::Bio).text())
+                    .col(
+                        ColumnDef::new(Users::Email)
+                            .string()
+                            .string_len(120)
+                            .unique_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Users::Phone)
+                            .string()
+                            .string_len(20)
+                            .unique_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Users::Balance)
+                            .decimal_len(10, 2)
+                            .not_null()
+                            .default("0.00"),
+                    )
+                    .col(
+                        ColumnDef::new(Users::Status)
+                            .string()
+                            .string_len(20)
+                            .not_null()
+                            .default("active"),
+                    )
+                    .col(
+                        ColumnDef::new(Users::Role)
+                            .string()
+                            .string_len(20)
+                            .not_null()
+                            .default("user"),
+                    )
+                    .col(
+                        ColumnDef::new(Users::VerificationStatus)
+                            .string()
+                            .string_len(20)
+                            .not_null()
+                            .default("unverified"),
+                    )
+                    .col(ColumnDef::new(Users::VerificationMessage).text())
+                    .col(ColumnDef::new(Users::VerificationTime).timestamp_with_time_zone())
+                    .col(ColumnDef::new(Users::RealName).string().string_len(50))
+                    .col(ColumnDef::new(Users::IdCard).string().string_len(20))
+                    .col(ColumnDef::new(Users::LastLoginTime).timestamp_with_time_zone())
+                    .col(
+                        ColumnDef::new(Users::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default("CURRENT_TIMESTAMP"),
+                    )
+                    .col(
+                        ColumnDef::new(Users::UpdatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default("CURRENT_TIMESTAMP"),
+                    )
+                    .to_owned(),
+            )
+            .await
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(Users::Table).to_owned())
+            .await
+    }
+}
+
+#[derive(Iden)]
+enum Users {
+    Table,
+    Id,
+    Username,
+    PasswordHash,
+    Nickname,
+    AvatarUrl,
+    Gender,
+    DateOfBirth,
+    Bio,
+    Email,
+    Phone,
+    Balance,
+    Status,
+    Role,
+    VerificationStatus,
+    VerificationMessage,
+    VerificationTime,
+    RealName,
+    IdCard,
+    LastLoginTime,
+    CreatedAt,
+    UpdatedAt,
+}

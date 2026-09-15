@@ -32,3 +32,11 @@
 
 *2026-09-15 22:16*
 
+## ADR-005: SQLite for local dev, PostgreSQL for production
+
+**Reason**: PostgreSQL 14 is running locally but superuser credentials are unknown; SeaORM supports both backends
+
+**Impact**: DB URL switches via .env; migrations must stay compatible with both SQLite and PostgreSQL
+
+*2026-09-15 22:20*
+

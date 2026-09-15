@@ -4,9 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-core = { path = "../core" }
+app_core = { path = "../app_core" }
 common = { path = "../common" }
 sea-orm = { workspace = true }
+sea-orm-migration = { workspace = true }
+async-trait = "0.1"
 serde = { workspace = true }
 serde_json = { workspace = true }
 chrono = { workspace = true }

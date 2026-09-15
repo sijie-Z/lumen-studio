@@ -7,8 +7,8 @@
 - SolidJS frontend skeleton
 
 ## DOING
-- Auth module: register/login/JWT
+- (empty)
 
 ## DONE
-- (empty)
+- Auth module: register/login/JWT
 

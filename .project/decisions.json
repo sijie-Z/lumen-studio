@@ -23,6 +23,12 @@
       "reason": "MSVC linker missing; GNU toolchain compiles cleanly",
       "impact": "backend/rust-toolchain.toml pins stable-x86_64-pc-windows-gnu",
       "date": "2026-09-15 22:16"
+    },
+    {
+      "title": "SQLite for local dev, PostgreSQL for production",
+      "reason": "PostgreSQL 14 is running locally but superuser credentials are unknown; SeaORM supports both backends",
+      "impact": "DB URL switches via .env; migrations must stay compatible with both SQLite and PostgreSQL",
+      "date": "2026-09-15 22:20"
     }
   ]
 }

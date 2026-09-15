@@ -37,3 +37,20 @@ impl std::fmt::Display for Phone {
         write!(f, "{}", self.0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn accepts_valid_chinese_mobile() {
+        let phone = Phone::new("13812341234").unwrap();
+        assert_eq!(phone.as_str(), "13812341234");
+        assert_eq!(phone.masked(), "138****1234");
+    }
+
+    #[test]
+    fn rejects_short_number() {
+        assert!(Phone::new("12345").is_err());
+    }
+}

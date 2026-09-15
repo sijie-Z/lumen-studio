@@ -1,4 +1,4 @@
-use rust_decimal::Decimal;
+use rust_decimal::{Decimal, RoundingStrategy};
 use serde::{Deserialize, Serialize};
 
 /// Money value object: precision, non-negative, compile-time type safety.
@@ -25,7 +25,9 @@ impl Money {
         if amount > Self::max() {
             return Err(MoneyError::ExceedsMaximum(amount));
         }
-        Ok(Self(amount.round_dp(2)))
+        Ok(Self(
+            amount.round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero),
+        ))
     }
 
     pub fn from_yuan(yuan: f64) -> Result<Self, MoneyError> {
@@ -43,7 +45,7 @@ impl Money {
 
     pub fn commission(&self) -> Money {
         let commission = self.0 * Decimal::new(1, 1);
-        Self(commission.round_dp(2))
+        Self(commission.round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero))
     }
 }
 
@@ -64,5 +66,28 @@ impl std::ops::Sub for Money {
 impl std::fmt::Display for Money {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rust_decimal::Decimal;
+
+    #[test]
+    fn rejects_negative_amount() {
+        assert!(Money::new(Decimal::new(-1, 0)).is_err());
+    }
+
+    #[test]
+    fn rounds_to_two_decimals() {
+        let money = Money::new(Decimal::new(12345, 3)).unwrap();
+        assert_eq!(money.amount(), Decimal::new(1235, 2));
+    }
+
+    #[test]
+    fn computes_ten_percent_commission() {
+        let money = Money::new(Decimal::new(3999_00, 2)).unwrap();
+        assert_eq!(money.commission().amount(), Decimal::new(399_90, 2));
     }
 }
