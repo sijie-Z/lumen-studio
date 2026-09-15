@@ -38,6 +38,12 @@
       "status": "done",
       "started": "2026-09-15 23:31",
       "finished": "2026-09-15 23:35"
+    },
+    {
+      "name": "Persist uploaded works in DB and show on home",
+      "status": "done",
+      "started": "2026-09-15 23:36",
+      "finished": "2026-09-15 23:47"
     }
   ]
 }

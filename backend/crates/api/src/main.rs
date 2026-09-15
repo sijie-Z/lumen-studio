@@ -35,9 +35,10 @@ async fn main() -> anyhow::Result<()> {
     });
     let auth = AuthService::new(db.clone(), jwt_secret, 15 * 60, 7 * 24 * 60 * 60);
     let app_state = AppState {
-        db,
+        db: db.clone(),
         auth,
         chat: ai::ChatClient::from_env(),
+        works: services::work_service::WorkService::new(db),
     };
 
     let cors = CorsLayer::new()

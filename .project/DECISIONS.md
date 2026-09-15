@@ -64,3 +64,11 @@
 
 *2026-09-15 23:35*
 
+## ADR-009: Works persisted in SQLite/Postgres, no localStorage
+
+**Reason**: Uploaded files were only browser-local; now stored in works table and listed publicly
+
+**Impact**: POST/GET /api/v1/works; dashboard and home read the same source
+
+*2026-09-15 23:47*
+

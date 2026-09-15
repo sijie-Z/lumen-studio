@@ -1,4 +1,4 @@
-import { createQuery } from "@tanstack/solid-query";
+import { createQuery, useQueryClient } from "@tanstack/solid-query";
 import { useNavigate } from "@solidjs/router";
 import {
   Camera,
@@ -7,37 +7,32 @@ import {
   Image as ImageIcon,
   LogOut,
   Sparkles,
-  Trash2,
   User
 } from "lucide-solid";
 import { createEffect, createSignal, For, Show } from "solid-js";
-import { fetchMe, isAuthenticated, uploadImage, type UploadResult } from "../lib/auth-api";
+import { fetchMe, isAuthenticated, uploadImage } from "../lib/auth-api";
+import { createWork, listWorks } from "../lib/works-api";
 import { useAuthStore } from "../stores/auth";
 import Assistant from "../components/ai/assistant";
-
-const GALLERY_KEY = "lumina.gallery";
-
-function loadGallery(): UploadResult[] {
-  try {
-    return JSON.parse(localStorage.getItem(GALLERY_KEY) ?? "[]");
-  } catch {
-    return [];
-  }
-}
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const auth = useAuthStore();
+  const queryClient = useQueryClient();
   const [selected, setSelected] = createSignal<File | null>(null);
   const [preview, setPreview] = createSignal<string | null>(null);
   const [uploading, setUploading] = createSignal(false);
   const [error, setError] = createSignal("");
-  const [gallery, setGallery] = createSignal<UploadResult[]>(loadGallery());
 
   const me = createQuery(() => ({
     queryKey: ["me"] as const,
     queryFn: fetchMe,
     enabled: isAuthenticated()
+  }));
+  const works = createQuery(() => ({
+    queryKey: ["works"] as const,
+    queryFn: listWorks,
+    staleTime: 0
   }));
 
   createEffect(() => {
@@ -68,9 +63,11 @@ export default function Dashboard() {
     setError("");
     try {
       const result = await uploadImage(file);
-      const next = [result, ...gallery()];
-      setGallery(next);
-      localStorage.setItem(GALLERY_KEY, JSON.stringify(next));
+      await createWork({
+        image_url: result.url,
+        title: file.name.replace(/\.[^.]+$/, "")
+      });
+      await queryClient.invalidateQueries({ queryKey: ["works"] });
       setSelected(null);
       setPreview(null);
     } catch (err) {
@@ -78,12 +75,6 @@ export default function Dashboard() {
     } finally {
       setUploading(false);
     }
-  }
-
-  function removeImage(url: string) {
-    const next = gallery().filter((item) => item.url !== url);
-    setGallery(next);
-    localStorage.setItem(GALLERY_KEY, JSON.stringify(next));
   }
 
   function signOut() {
@@ -133,7 +124,7 @@ export default function Dashboard() {
           <div class="flex items-center gap-3">
             <div class="rounded-lg border border-line bg-surface px-4 py-3">
               <p class="text-xs text-muted">已上传作品</p>
-              <p class="mt-1 text-xl font-medium text-amber">{gallery().length}</p>
+              <p class="mt-1 text-xl font-medium text-amber">{works.data?.length ?? 0}</p>
             </div>
             <div class="rounded-lg border border-line bg-surface px-4 py-3">
               <p class="text-xs text-muted">本月预约</p>
@@ -247,11 +238,11 @@ export default function Dashboard() {
               <h2 class="font-display text-2xl font-semibold">我的作品库</h2>
               <p class="mt-1 text-sm text-muted">上传的图片会出现在这里</p>
             </div>
-            <span class="text-sm text-muted">{gallery().length} 张</span>
+            <span class="text-sm text-muted">{works.data?.length ?? 0} 张</span>
           </div>
 
           <Show
-            when={gallery().length > 0}
+            when={(works.data?.length ?? 0) > 0}
             fallback={
               <div class="grid min-h-48 place-items-center rounded-lg border border-dashed border-line bg-surface/40 text-sm text-muted">
                 还没有上传任何作品
@@ -259,30 +250,22 @@ export default function Dashboard() {
             }
           >
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <For each={gallery()}>
+              <For each={works.data ?? []}>
                 {(item) => (
                   <div class="group overflow-hidden rounded-lg border border-line bg-surface">
                     <div class="aspect-square overflow-hidden">
                       <img
-                        src={item.url}
-                        alt={item.filename}
+                        src={item.image_url}
+                        alt={item.title ?? "上传作品"}
                         loading="lazy"
                         class="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     </div>
                     <div class="flex items-center justify-between gap-3 p-3">
                       <div class="min-w-0">
-                        <p class="truncate text-sm text-paper">{item.filename}</p>
-                        <p class="mt-0.5 text-xs text-muted">{(item.size / 1024 / 1024).toFixed(2)} MB</p>
+                        <p class="truncate text-sm text-paper">{item.title ?? "未命名作品"}</p>
+                        <p class="mt-0.5 text-xs text-muted">{new Date(item.created_at).toLocaleDateString("zh-CN")}</p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => removeImage(item.url)}
-                        class="grid size-8 shrink-0 place-items-center rounded-lg border border-line text-muted transition-colors hover:border-coral hover:text-coral"
-                        aria-label="删除图片"
-                      >
-                        <Trash2 size={15} />
-                      </button>
                     </div>
                   </div>
                 )}

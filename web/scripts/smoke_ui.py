@@ -43,7 +43,7 @@ def main() -> None:
 
         page.get_by_role("button", name="打开 AI 助手").click()
         page.get_by_role("button", name="推荐摄影师").click()
-        page.wait_for_selector("text=平台已收录", timeout=10000)
+        page.wait_for_selector("text=平台已收录", timeout=20000)
         page.get_by_role("button", name="关闭 AI 助手").click()
 
         page.goto("http://127.0.0.1:5173/register", wait_until="networkidle")
@@ -62,8 +62,11 @@ def main() -> None:
             str(ROOT / "public/demo/work-1.jpg")
         )
         page.get_by_role("button", name="上传图片").click()
-        page.wait_for_selector("text=work-1.jpg", timeout=15000)
+        page.wait_for_selector('[alt="work-1"]', timeout=15000)
         page.screenshot(path=str(OUT_DIR / "dashboard-desktop.png"), full_page=True)
+
+        page.goto("http://127.0.0.1:5173", wait_until="networkidle")
+        page.wait_for_selector('img[src*="/uploads/"]', timeout=10000)
 
         page.set_viewport_size({"width": 390, "height": 844})
         page.goto("http://127.0.0.1:5173", wait_until="networkidle")

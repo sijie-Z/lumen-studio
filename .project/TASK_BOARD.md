@@ -14,4 +14,5 @@
 - SolidJS web UI: login/register + dashboard + image upload
 - Backend image upload endpoint
 - AI assistant chat: backend LLM endpoint + frontend panel
+- Persist uploaded works in DB and show on home
 

@@ -1,4 +1,5 @@
 import { A } from "@solidjs/router";
+import { createQuery } from "@tanstack/solid-query";
 import {
   Aperture,
   ArrowRight,
@@ -11,6 +12,8 @@ import {
   Sparkles,
   WandSparkles
 } from "lucide-solid";
+import { createMemo } from "solid-js";
+import { listWorks } from "../lib/works-api";
 import SiteFooter from "../components/layout/site-footer";
 import SiteHeader from "../components/layout/site-header";
 import Assistant from "../components/ai/assistant";
@@ -32,6 +35,20 @@ const works = [
 ];
 
 export default function Home() {
+  const uploadedWorks = createQuery(() => ({
+    queryKey: ["works"] as const,
+    queryFn: listWorks
+  }));
+  const displayWorks = createMemo(() => {
+    const uploaded = (uploadedWorks.data ?? []).slice(0, 6).map((item) => ({
+      src: item.image_url,
+      title: item.title ?? "未命名作品",
+      creator: "新创作者",
+      tag: "用户作品"
+    }));
+    return [...uploaded, ...works].slice(0, 6);
+  });
+
   return (
     <div class="min-h-screen bg-ink text-paper">
       <SiteHeader />
@@ -168,7 +185,7 @@ export default function Home() {
               </A>
             </div>
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {works.map((work) => (
+              {displayWorks().map((work) => (
                 <a
                   href="/#top"
                   class="group overflow-hidden rounded-lg border border-line bg-surface no-underline"

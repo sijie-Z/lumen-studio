@@ -1,20 +1,20 @@
 {
   "recent_files": [
+    "web/src/pages/home.tsx",
+    "web/src/pages/dashboard.tsx",
+    "web/src/lib/works-api.ts",
+    "backend/crates/api/src/routes/works.rs",
+    "backend/crates/services/src/work_service.rs",
+    "backend/crates/db/src/migrations/m20260915_000002_create_works.rs",
+    "backend/crates/db/src/entities/work.rs",
     "web/src/lib/ai-api.ts",
     "web/src/components/ai/assistant.tsx",
-    "backend/crates/api/src/state.rs",
-    "backend/crates/api/src/routes/ai.rs",
-    "backend/crates/ai/src/chat.rs",
-    "web/scripts/smoke_ui.py",
-    "web/src/lib/auth-api.ts",
-    "web/src/pages/dashboard.tsx",
-    "web/src/pages/home.tsx",
-    "web/package.json"
+    "backend/crates/api/src/state.rs"
   ],
   "known_issues": [
     "Rust MSVC linker missing — need VS Build Tools or GNU toolchain"
   ],
-  "next_step": "Creator profile + Service CRUD + persist uploaded works",
+  "next_step": "Creator profile + Service CRUD + appointments",
   "branch": "main",
   "active_work": [
     {
@@ -27,6 +27,10 @@
     },
     {
       "name": "AI assistant chat: backend LLM endpoint + frontend panel",
+      "status": "done"
+    },
+    {
+      "name": "Persist uploaded works in DB and show on home",
       "status": "done"
     }
   ]

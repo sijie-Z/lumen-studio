@@ -23,3 +23,10 @@
 - **Summary**: AI assistant chat: backend LLM endpoint + frontend panel
 - **Next**: Complete: AI assistant chat: backend LLM endpoint + frontend panel
 
+### [2026-09-15 23:47] main — Persist uploaded works in DB and show on home
+
+- **Task**: Persist uploaded works in DB and show on home
+- **Branch**: main
+- **Summary**: Persist uploaded works in DB and show on home
+- **Next**: Complete: Persist uploaded works in DB and show on home
+

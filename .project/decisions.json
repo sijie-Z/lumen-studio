@@ -47,6 +47,12 @@
       "reason": "Works immediately without a key; set OPENAI_API_KEY/BASE_URL/MODEL to switch to a real LLM",
       "impact": "POST /api/v1/ai/chat returns mode local|llm; UI stays identical",
       "date": "2026-09-15 23:35"
+    },
+    {
+      "title": "Works persisted in SQLite/Postgres, no localStorage",
+      "reason": "Uploaded files were only browser-local; now stored in works table and listed publicly",
+      "impact": "POST/GET /api/v1/works; dashboard and home read the same source",
+      "date": "2026-09-15 23:47"
     }
   ]
 }
