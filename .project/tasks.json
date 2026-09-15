@@ -2,7 +2,8 @@
   "tasks": [
     {
       "name": "Auth module: register/login/JWT",
-      "status": "todo"
+      "status": "doing",
+      "started": "2026-09-15 22:16"
     },
     {
       "name": "Creator profile + Service CRUD",

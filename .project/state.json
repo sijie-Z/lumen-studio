@@ -1,5 +1,8 @@
 {
   "recent_files": [
+    "backend/crates/core/src/entities/user.rs",
+    "backend/crates/common/Cargo.toml",
+    "backend/rust-toolchain.toml",
     "backend/crates/core/src/value_objects/money.rs",
     "backend/crates/core/src/enums.rs",
     "backend/crates/common/src/error.rs",
@@ -8,5 +11,12 @@
   "known_issues": [
     "Rust MSVC linker missing — need VS Build Tools or GNU toolchain"
   ],
-  "next_step": "Install VS Build Tools or GNU toolchain, then build auth module"
+  "next_step": "Complete: Auth module: register/login/JWT",
+  "branch": "main",
+  "active_work": [
+    {
+      "name": "Auth module: register/login/JWT",
+      "status": "in_progress"
+    }
+  ]
 }

@@ -17,6 +17,12 @@
       "reason": "Chat assistant, not just backend inference",
       "impact": "Frontend needs AI chat component from day 1",
       "date": "2026-06-28 19:18"
+    },
+    {
+      "title": "GNU toolchain for Windows build",
+      "reason": "MSVC linker missing; GNU toolchain compiles cleanly",
+      "impact": "backend/rust-toolchain.toml pins stable-x86_64-pc-windows-gnu",
+      "date": "2026-09-15 22:16"
     }
   ]
 }

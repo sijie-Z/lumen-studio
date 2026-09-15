@@ -24,3 +24,11 @@
 
 *2026-06-28 19:18*
 
+## ADR-004: GNU toolchain for Windows build
+
+**Reason**: MSVC linker missing; GNU toolchain compiles cleanly
+
+**Impact**: backend/rust-toolchain.toml pins stable-x86_64-pc-windows-gnu
+
+*2026-09-15 22:16*
+
