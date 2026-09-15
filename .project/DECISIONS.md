@@ -40,3 +40,19 @@
 
 *2026-09-15 22:20*
 
+## ADR-006: New web/ SolidJS app replaces old frontend attempts
+
+**Reason**: Old frontend and frontend_new are legacy reference code; clean web/ has SolidJS + UnoCSS + TanStack Query
+
+**Impact**: All new UI work lives in web/; old frontend directories stay untouched as reference
+
+*2026-09-15 23:30*
+
+## ADR-007: Local upload storage before MinIO
+
+**Reason**: MinIO is not running locally; uploads dir + ServeDir gives identical API surface
+
+**Impact**: UploadResult.url is stable; swap storage layer later without changing UI
+
+*2026-09-15 23:30*
+

@@ -21,6 +21,17 @@
     {
       "name": "SolidJS frontend skeleton",
       "status": "todo"
+    },
+    {
+      "name": "SolidJS web UI: login/register + dashboard + image upload",
+      "status": "done",
+      "finished": "2026-09-15 23:30"
+    },
+    {
+      "name": "Backend image upload endpoint",
+      "status": "done",
+      "started": "2026-09-15 23:12",
+      "finished": "2026-09-15 23:30"
     }
   ]
 }

@@ -1,0 +1,58 @@
+:root {
+  color-scheme: dark;
+  font-family: "Inter", "Segoe UI", "Microsoft YaHei", sans-serif;
+  background: #0c0f14;
+  color: #f4f1ea;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #0c0f14;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+::selection {
+  background: rgba(243, 164, 91, 0.35);
+  color: #fff8ee;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0c0f14;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a313d;
+  border: 2px solid #0c0f14;
+  border-radius: 999px;
+}

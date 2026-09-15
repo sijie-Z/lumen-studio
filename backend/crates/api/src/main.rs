@@ -9,6 +9,7 @@ use services::auth_service::AuthService;
 use state::AppState;
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
+use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
 #[tokio::main]
@@ -39,8 +40,10 @@ async fn main() -> anyhow::Result<()> {
         .allow_origin(Any)
         .allow_methods(Any)
         .allow_headers(Any);
+    let upload_dir = std::env::var("UPLOAD_DIR").unwrap_or_else(|_| "uploads".into());
     let app = Router::new()
         .merge(routes::router())
+        .nest_service("/uploads", ServeDir::new(&upload_dir))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);

@@ -29,6 +29,18 @@
       "reason": "PostgreSQL 14 is running locally but superuser credentials are unknown; SeaORM supports both backends",
       "impact": "DB URL switches via .env; migrations must stay compatible with both SQLite and PostgreSQL",
       "date": "2026-09-15 22:20"
+    },
+    {
+      "title": "New web/ SolidJS app replaces old frontend attempts",
+      "reason": "Old frontend and frontend_new are legacy reference code; clean web/ has SolidJS + UnoCSS + TanStack Query",
+      "impact": "All new UI work lives in web/; old frontend directories stay untouched as reference",
+      "date": "2026-09-15 23:30"
+    },
+    {
+      "title": "Local upload storage before MinIO",
+      "reason": "MinIO is not running locally; uploads dir + ServeDir gives identical API surface",
+      "impact": "UploadResult.url is stable; swap storage layer later without changing UI",
+      "date": "2026-09-15 23:30"
     }
   ]
 }

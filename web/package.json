@@ -1,0 +1,24 @@
+{
+  "name": "lumina-web",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@solidjs/router": "^0.15.3",
+    "@tanstack/solid-query": "^5.71.0",
+    "lucide-solid": "^0.468.0",
+    "solid-js": "^1.9.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "unocss": "^0.65.4",
+    "vite": "^6.0.7",
+    "vite-plugin-solid": "^2.11.1"
+  }
+}

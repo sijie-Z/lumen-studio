@@ -21,6 +21,7 @@ Thumbs.db
 node_modules/
 dist/
 *.tsbuildinfo
+.smoke/
 
 ### Python
 __pycache__/

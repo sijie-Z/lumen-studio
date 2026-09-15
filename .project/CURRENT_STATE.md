@@ -4,21 +4,22 @@
 
 ## Active Work
 - [x] Auth module: register/login/JWT
+- [x] Backend image upload endpoint
 
 ## Recent Changes
+- web/scripts/smoke_ui.py
+- web/src/lib/auth-api.ts
+- web/src/pages/dashboard.tsx
+- web/src/pages/home.tsx
+- web/package.json
+- backend/crates/api/src/routes/uploads.rs
+- backend/Cargo.toml
 - backend/crates/api/src/middleware/auth.rs
 - backend/crates/api/src/routes/auth.rs
 - backend/crates/api/src/main.rs
-- backend/crates/services/src/dto/auth.rs
-- backend/crates/services/src/auth_service.rs
-- backend/crates/db/src/entities/user.rs
-- backend/crates/db/src/migrations/m20260915_000001_create_users.rs
-- backend/crates/db/src/lib.rs
-- backend/crates/core/src/entities/user.rs
-- backend/crates/common/Cargo.toml
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
 
 ## Next Step
-- Creator profile + Service CRUD module
+- Creator profile + Service CRUD + real work persistence
