@@ -17,4 +17,5 @@
 - Persist uploaded works in DB and show on home
 - Design system + ui components + explore/work pages
 - Creator profile + Service CRUD + appointments
+- Seed realistic creators/services/works with real photos
 

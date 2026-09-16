@@ -39,6 +39,9 @@ async fn main() -> anyhow::Result<()> {
         .ensure_default_types()
         .await
         .context("failed to seed service types")?;
+    services::seed::seed_demo_data(&db)
+        .await
+        .context("failed to seed demo data")?;
     let app_state = AppState {
         db: db.clone(),
         auth,

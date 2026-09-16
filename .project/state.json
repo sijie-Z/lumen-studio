@@ -1,20 +1,21 @@
 {
   "recent_files": [
+    "web/src/pages/home.tsx",
+    "backend/crates/services/src/work_service.rs",
+    "backend/crates/db/src/migrations/m20260916_000004_add_work_category.rs",
+    "backend/crates/services/src/seed.rs",
     "web/src/pages/creator-profile.tsx",
     "web/src/pages/service-detail.tsx",
     "web/src/pages/services.tsx",
     "web/src/lib/marketplace-api.ts",
     "backend/crates/api/src/routes/appointments.rs",
-    "backend/crates/api/src/routes/service_routes.rs",
-    "backend/crates/api/src/routes/creators.rs",
-    "backend/crates/services/src/appointment_service.rs",
-    "backend/crates/services/src/service_catalog.rs",
-    "backend/crates/services/src/creator_service.rs"
+    "backend/crates/api/src/routes/service_routes.rs"
   ],
   "known_issues": [
-    "Rust MSVC linker missing — need VS Build Tools or GNU toolchain"
+    "Rust MSVC linker missing — need VS Build Tools or GNU toolchain",
+    "smoke test still writes to main photography.db"
   ],
-  "next_step": "Payment module + creator appointment management UI",
+  "next_step": "Isolate smoke tests to a test DB; creator avatars + reviews",
   "branch": "main",
   "active_work": [
     {
@@ -39,6 +40,10 @@
     },
     {
       "name": "Creator profile + Service CRUD + appointments",
+      "status": "done"
+    },
+    {
+      "name": "Seed realistic creators/services/works with real photos",
       "status": "done"
     }
   ]

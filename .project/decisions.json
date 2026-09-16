@@ -65,6 +65,12 @@
       "reason": "Enforce pending->confirmed->ongoing->completed with cancellations; reject overlapping slots per creator",
       "impact": "Single source of truth in appointment_service; SQLite dev, Postgres prod",
       "date": "2026-09-16 17:29"
+    },
+    {
+      "title": "Seed real demo data + work categories",
+      "reason": "Replace smoke-test garbage with 8 creators, 8 services, 20 categorized works using 22 real Unsplash photos",
+      "impact": "Seed is idempotent; smoke tests must later use an isolated DB",
+      "date": "2026-09-16 21:32"
     }
   ]
 }

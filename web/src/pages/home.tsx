@@ -19,19 +19,10 @@ import SiteHeader from "../components/layout/site-header";
 import Assistant from "../components/ai/assistant";
 
 const categories = [
-  { icon: Camera, title: "人像摄影", count: 1286, tint: "bg-amber/15 text-amber" },
-  { icon: Aperture, title: "婚礼纪实", count: 874, tint: "bg-coral/15 text-coral" },
-  { icon: Image, title: "商业拍摄", count: 642, tint: "bg-teal/15 text-teal" },
-  { icon: Clapperboard, title: "短片影像", count: 391, tint: "bg-sky-300/15 text-sky-300" }
-];
-
-const works = [
-  { src: "/demo/work-1.jpg", title: "海边晨光", creator: "陈屿", tag: "人像", href: "/explore" },
-  { src: "/demo/work-2.jpg", title: "城市夜色", creator: "林野", tag: "街拍", href: "/explore" },
-  { src: "/demo/work-3.jpg", title: "花间新娘", creator: "苏禾", tag: "婚礼", href: "/explore" },
-  { src: "/demo/work-4.jpg", title: "静物叙事", creator: "周墨", tag: "商业", href: "/explore" },
-  { src: "/demo/work-5.jpg", title: "旷野之间", creator: "顾川", tag: "旅行", href: "/explore" },
-  { src: "/demo/work-6.jpg", title: "光影肖像", creator: "许言", tag: "人像", href: "/explore" }
+  { icon: Camera, title: "人像摄影", tint: "bg-amber/15 text-amber" },
+  { icon: Aperture, title: "婚礼纪实", tint: "bg-coral/15 text-coral" },
+  { icon: Image, title: "商业拍摄", tint: "bg-teal/15 text-teal" },
+  { icon: Clapperboard, title: "短片影像", tint: "bg-sky-300/15 text-sky-300" }
 ];
 
 export default function Home() {
@@ -40,14 +31,13 @@ export default function Home() {
     queryFn: listWorks
   }));
   const displayWorks = createMemo(() => {
-    const uploaded = (uploadedWorks.data ?? []).slice(0, 6).map((item) => ({
+    return (uploadedWorks.data ?? []).slice(0, 9).map((item) => ({
       src: item.image_url,
       title: item.title ?? "未命名作品",
-      creator: "新创作者",
-      tag: "用户作品",
+      creator: item.creator_name,
+      tag: item.category ?? "作品",
       href: `/works/${item.id}`
     }));
-    return [...uploaded, ...works].slice(0, 6);
   });
 
   return (
@@ -86,7 +76,7 @@ export default function Home() {
                   <ArrowRight size={17} />
                 </A>
                 <A
-                  href="/#creators"
+                  href="/explore"
                   class="inline-flex items-center justify-center gap-2 rounded-lg border border-white/20 bg-black/20 px-6 py-3.5 text-sm text-paper no-underline backdrop-blur transition-colors hover:border-amber"
                 >
                   <WandSparkles size={17} />
@@ -105,7 +95,7 @@ export default function Home() {
                 <h2 class="mt-3 font-display text-3xl font-semibold md:text-4xl">选择你的视觉方向</h2>
               </div>
               <A
-                href="/#creators"
+                href="/services"
                 class="hidden items-center gap-2 text-sm text-muted no-underline hover:text-paper md:inline-flex"
               >
                 查看全部
@@ -115,14 +105,14 @@ export default function Home() {
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {categories.map((item) => (
                 <a
-                  href="/#creators"
+                  href="/services"
                   class="group rounded-lg border border-line bg-surface p-6 no-underline transition-colors hover:border-amber/60"
                 >
                   <div class={`grid size-11 place-items-center rounded-lg ${item.tint}`}>
                     <item.icon size={21} />
                   </div>
                   <h3 class="mt-6 text-lg font-medium text-paper">{item.title}</h3>
-                  <p class="mt-2 text-sm text-muted">{item.count} 位创作者</p>
+                  <p class="mt-2 text-sm text-muted">发现创作者</p>
                 </a>
               ))}
             </div>
@@ -178,7 +168,7 @@ export default function Home() {
                 <h2 class="mt-3 font-display text-3xl font-semibold md:text-4xl">本周精选作品</h2>
               </div>
               <A
-                href="/register"
+                href="/dashboard"
                 class="hidden items-center gap-2 text-sm text-muted no-underline hover:text-paper md:inline-flex"
               >
                 发布你的作品

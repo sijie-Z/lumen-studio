@@ -57,14 +57,14 @@ export default function WorkDetail() {
                 <h1 class="font-display text-3xl font-semibold">
                   {current()!.title ?? "未命名作品"}
                 </h1>
-                <Badge variant="accent">用户作品</Badge>
+                <Badge variant="accent">{current()!.category ?? "作品"}</Badge>
               </div>
               <div class="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted">
                 <span class="flex items-center gap-1.5">
                   <CalendarDays size={15} />
                   {new Date(current()!.created_at).toLocaleDateString("zh-CN")}
                 </span>
-                <span>@新创作者</span>
+                <span>@{current()!.creator_name}</span>
               </div>
             </div>
 

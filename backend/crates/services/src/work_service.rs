@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use common::AppError;
-use db::entities::{work as work_entity, WorkModel};
+use db::entities::{user as user_entity, work as work_entity, WorkModel};
 use sea_orm::{
     ActiveModelTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryOrder, QuerySelect, Set,
 };
@@ -13,6 +13,8 @@ pub struct WorkDto {
     pub image_url: String,
     pub title: Option<String>,
     pub description: Option<String>,
+    pub category: Option<String>,
+    pub creator_name: String,
     pub created_at: DateTime<Utc>,
 }
 
@@ -32,6 +34,7 @@ impl WorkService {
         image_url: String,
         title: Option<String>,
         description: Option<String>,
+        category: Option<String>,
     ) -> Result<WorkDto, AppError> {
         if image_url.trim().is_empty() {
             return Err(AppError::BadRequest("image_url is required".into()));
@@ -42,6 +45,7 @@ impl WorkService {
             image_url: Set(image_url),
             title: Set(title.filter(|value| !value.trim().is_empty())),
             description: Set(description.filter(|value| !value.trim().is_empty())),
+            category: Set(category.filter(|value| !value.trim().is_empty())),
             created_at: Set(Utc::now()),
             ..Default::default()
         }
@@ -49,17 +53,33 @@ impl WorkService {
         .await
         .map_err(AppError::from_anyhow)?;
 
-        Ok(to_dto(model))
+        let creator_name = user_entity::Entity::find_by_id(user_id)
+            .one(&self.db)
+            .await
+            .map_err(AppError::from_anyhow)?
+            .map(|user| user.nickname)
+            .unwrap_or_else(|| "匿名创作者".into());
+        Ok(to_dto(model, creator_name))
     }
 
     pub async fn list(&self, limit: u64) -> Result<Vec<WorkDto>, AppError> {
-        let models = work_entity::Entity::find()
+        let rows = work_entity::Entity::find()
+            .find_with_related(user_entity::Entity)
             .order_by_desc(work_entity::Column::CreatedAt)
             .limit(limit.min(100))
             .all(&self.db)
             .await
             .map_err(AppError::from_anyhow)?;
-        Ok(models.into_iter().map(to_dto).collect())
+        Ok(rows
+            .into_iter()
+            .map(|(work, users)| {
+                let creator_name = users
+                    .first()
+                    .map(|user| user.nickname.clone())
+                    .unwrap_or_else(|| "匿名创作者".into());
+                to_dto(work, creator_name)
+            })
+            .collect())
     }
 
     pub async fn count(&self) -> Result<u64, AppError> {
@@ -70,13 +90,15 @@ impl WorkService {
     }
 }
 
-fn to_dto(model: WorkModel) -> WorkDto {
+fn to_dto(model: WorkModel, creator_name: String) -> WorkDto {
     WorkDto {
         id: model.id,
         user_id: model.user_id,
         image_url: model.image_url,
         title: model.title,
         description: model.description,
+        category: model.category,
+        creator_name,
         created_at: model.created_at,
     }
 }
@@ -110,7 +132,7 @@ mod tests {
 
         let service = WorkService::new(db);
         let created = service
-            .create(1, "/uploads/one.jpg".into(), Some("One".into()), None)
+            .create(1, "/uploads/one.jpg".into(), Some("One".into()), None, None)
             .await
             .unwrap();
         assert_eq!(created.image_url, "/uploads/one.jpg");

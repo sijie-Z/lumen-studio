@@ -56,6 +56,12 @@
       "status": "done",
       "started": "2026-09-16 17:29",
       "finished": "2026-09-16 17:29"
+    },
+    {
+      "name": "Seed realistic creators/services/works with real photos",
+      "status": "done",
+      "started": "2026-09-16 21:32",
+      "finished": "2026-09-16 21:32"
     }
   ]
 }

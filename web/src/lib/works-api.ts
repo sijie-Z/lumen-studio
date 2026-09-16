@@ -6,6 +6,8 @@ export interface WorkDto {
   image_url: string;
   title: string | null;
   description: string | null;
+  category: string | null;
+  creator_name: string;
   created_at: string;
 }
 
@@ -17,6 +19,7 @@ export async function createWork(input: {
   image_url: string;
   title?: string;
   description?: string;
+  category?: string;
 }) {
   return request<WorkDto>("/works", {
     method: "POST",

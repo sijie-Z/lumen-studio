@@ -83,7 +83,7 @@ export default function Explore() {
                       {new Date(item.created_at).toLocaleDateString("zh-CN")}
                     </p>
                   </div>
-                  <Badge variant="outline">用户作品</Badge>
+                  <Badge variant="outline">{item.category ?? "作品"}</Badge>
                 </div>
               </A>
             )}

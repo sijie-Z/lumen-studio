@@ -19,6 +19,7 @@ pub struct CreateWorkInput {
     image_url: String,
     title: Option<String>,
     description: Option<String>,
+    category: Option<String>,
 }
 
 pub fn router() -> Router<AppState> {
@@ -41,7 +42,7 @@ async fn create_work(
 ) -> Result<Json<ApiResponse<WorkDto>>, AppError> {
     let work = state
         .works
-        .create(claims.sub, input.image_url, input.title, input.description)
+        .create(claims.sub, input.image_url, input.title, input.description, input.category)
         .await?;
     Ok(Json(ApiResponse::success(work)))
 }

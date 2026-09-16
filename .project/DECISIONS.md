@@ -88,3 +88,11 @@
 
 *2026-09-16 17:29*
 
+## ADR-012: Seed real demo data + work categories
+
+**Reason**: Replace smoke-test garbage with 8 creators, 8 services, 20 categorized works using 22 real Unsplash photos
+
+**Impact**: Seed is idempotent; smoke tests must later use an isolated DB
+
+*2026-09-16 21:32*
+
