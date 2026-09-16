@@ -80,3 +80,11 @@
 
 *2026-09-16 16:42*
 
+## ADR-011: Appointment state machine + overlap detection
+
+**Reason**: Enforce pending->confirmed->ongoing->completed with cancellations; reject overlapping slots per creator
+
+**Impact**: Single source of truth in appointment_service; SQLite dev, Postgres prod
+
+*2026-09-16 17:29*
+

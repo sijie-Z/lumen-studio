@@ -59,6 +59,12 @@
       "reason": "React shadcn/Vercel templates can't be copied directly; adapt their design tokens and cva variant model into SolidJS + UnoCSS",
       "impact": "ui/ component library is the single source of truth for styling",
       "date": "2026-09-16 16:42"
+    },
+    {
+      "title": "Appointment state machine + overlap detection",
+      "reason": "Enforce pending->confirmed->ongoing->completed with cancellations; reject overlapping slots per creator",
+      "impact": "Single source of truth in appointment_service; SQLite dev, Postgres prod",
+      "date": "2026-09-16 17:29"
     }
   ]
 }

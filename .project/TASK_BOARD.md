@@ -16,4 +16,5 @@
 - AI assistant chat: backend LLM endpoint + frontend panel
 - Persist uploaded works in DB and show on home
 - Design system + ui components + explore/work pages
+- Creator profile + Service CRUD + appointments
 

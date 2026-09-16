@@ -10,6 +10,9 @@ import Register from "./pages/register";
 import Dashboard from "./pages/dashboard";
 import Explore from "./pages/explore";
 import WorkDetail from "./pages/work-detail";
+import Services from "./pages/services";
+import ServiceDetail from "./pages/service-detail";
+import CreatorProfile from "./pages/creator-profile";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +37,9 @@ render(
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/explore" component={Explore} />
         <Route path="/works/:id" component={WorkDetail} />
+        <Route path="/services" component={Services} />
+        <Route path="/services/:id" component={ServiceDetail} />
+        <Route path="/creators/:id" component={CreatorProfile} />
         <Route path="*" component={Home} />
       </Router>
     </QueryClientProvider>

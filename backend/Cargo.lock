@@ -137,6 +137,7 @@ dependencies = [
  "futures-util",
  "governor",
  "jsonwebtoken",
+ "rust_decimal",
  "sea-orm",
  "serde",
  "serde_json",

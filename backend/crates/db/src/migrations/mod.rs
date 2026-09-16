@@ -1,5 +1,6 @@
 mod m20260915_000001_create_users;
 mod m20260915_000002_create_works;
+mod m20260916_000003_create_marketplace;
 
 use sea_orm_migration::prelude::*;
 
@@ -11,6 +12,7 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m20260915_000001_create_users::Migration),
             Box::new(m20260915_000002_create_works::Migration),
+            Box::new(m20260916_000003_create_marketplace::Migration),
         ]
     }
 }

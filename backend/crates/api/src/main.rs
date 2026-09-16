@@ -34,11 +34,19 @@ async fn main() -> anyhow::Result<()> {
         "dev-only-secret-change-me".into()
     });
     let auth = AuthService::new(db.clone(), jwt_secret, 15 * 60, 7 * 24 * 60 * 60);
+    let services_catalog = services::service_catalog::ServiceCatalog::new(db.clone());
+    services_catalog
+        .ensure_default_types()
+        .await
+        .context("failed to seed service types")?;
     let app_state = AppState {
         db: db.clone(),
         auth,
         chat: ai::ChatClient::from_env(),
-        works: services::work_service::WorkService::new(db),
+        works: services::work_service::WorkService::new(db.clone()),
+        creators: services::creator_service::CreatorService::new(db.clone()),
+        services: services_catalog,
+        appointments: services::appointment_service::AppointmentService::new(db),
     };
 
     let cors = CorsLayer::new()

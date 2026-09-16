@@ -1,4 +1,4 @@
-import time
+﻿import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -19,7 +19,7 @@ def main() -> None:
         console_errors = []
         page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
 
-        page.goto("http://127.0.0.1:5173", wait_until="networkidle")
+        page.goto("http://127.0.0.1:5173", wait_until="domcontentloaded")
         page.wait_for_selector("text=Lumina", timeout=10000)
         page.screenshot(path=str(OUT_DIR / "home-desktop.png"), full_page=True)
         overflow = page.evaluate(
@@ -46,7 +46,7 @@ def main() -> None:
         page.wait_for_selector("text=平台已收录", timeout=20000)
         page.get_by_role("button", name="关闭 AI 助手").click()
 
-        page.goto("http://127.0.0.1:5173/register", wait_until="networkidle")
+        page.goto("http://127.0.0.1:5173/register", wait_until="domcontentloaded")
         page.locator('input[placeholder="lumina_user"]').fill(username)
         page.locator('input[placeholder="至少 8 位"]').fill("password123")
         page.locator('input[placeholder="you@example.com"]').fill(f"{username}@example.com")
@@ -58,6 +58,28 @@ def main() -> None:
         page.get_by_role("button", name="登录", exact=True).click()
         page.wait_for_selector("text=我的作品库", timeout=10000)
 
+        page.locator('input[placeholder="一句话介绍你的风格"]').fill("测试摄影师")
+        page.get_by_role("button", name="成为创作者").click()
+        page.wait_for_selector("text=创作者资料已保存", timeout=10000)
+
+        service_title = f"人像写真_{suffix}"
+        page.locator('input[placeholder="例如：城市人像写真"]').fill(service_title)
+        page.locator('input[placeholder="3999"]').fill("3999")
+        page.locator('input[placeholder="120"]').fill("120")
+        page.get_by_role("button", name="发布服务").click()
+        page.wait_for_selector("text=服务已发布", timeout=10000)
+
+        page.goto("http://127.0.0.1:5173/services", wait_until="domcontentloaded")
+        page.wait_for_selector(f"text={service_title}", timeout=10000)
+        page.locator("a[href^='/services/']").filter(has_text=service_title).first.click()
+        page.wait_for_selector("text=预约档期", timeout=10000)
+        page.locator('input[type="datetime-local"]').fill("2026-12-01T10:00")
+        page.get_by_role("button", name="立即预约").click()
+        page.wait_for_selector("text=预约已提交", timeout=10000)
+
+        page.goto("http://127.0.0.1:5173/dashboard", wait_until="domcontentloaded")
+        page.wait_for_selector("text=待确认", timeout=10000)
+
         page.locator('input[type="file"]').set_input_files(
             str(ROOT / "public/demo/work-1.jpg")
         )
@@ -65,11 +87,16 @@ def main() -> None:
         page.wait_for_selector('[alt="work-1"]', timeout=15000)
         page.screenshot(path=str(OUT_DIR / "dashboard-desktop.png"), full_page=True)
 
-        page.goto("http://127.0.0.1:5173", wait_until="networkidle")
+        page.goto("http://127.0.0.1:5173", wait_until="domcontentloaded")
         page.wait_for_selector('img[src*="/uploads/"]', timeout=10000)
 
-        page.goto("http://127.0.0.1:5173/explore", wait_until="networkidle")
-        page.wait_for_selector('a[href^="/works/"]', timeout=10000)
+        browser.close()
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page(viewport={"width": 1440, "height": 1000})
+        page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
+
+        page.goto("http://127.0.0.1:5173/explore", wait_until="domcontentloaded")
+        page.wait_for_selector('a[href^="/works/"]', timeout=20000)
         explore_overflow = page.evaluate(
             "document.documentElement.scrollWidth - window.innerWidth"
         )
@@ -78,11 +105,11 @@ def main() -> None:
         page.screenshot(path=str(OUT_DIR / "explore-desktop.png"), full_page=True)
 
         page.locator('a[href^="/works/"]').first.click()
-        page.wait_for_selector('img[src*="/uploads/"]', timeout=10000)
+        page.wait_for_selector('img[src*="/uploads/"]', timeout=20000)
         page.screenshot(path=str(OUT_DIR / "work-detail-desktop.png"), full_page=True)
 
         page.set_viewport_size({"width": 390, "height": 844})
-        page.goto("http://127.0.0.1:5173", wait_until="networkidle")
+        page.goto("http://127.0.0.1:5173", wait_until="domcontentloaded")
         overflow = page.evaluate(
             "document.documentElement.scrollWidth - window.innerWidth"
         )

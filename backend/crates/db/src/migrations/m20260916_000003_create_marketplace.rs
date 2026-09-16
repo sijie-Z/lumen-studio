@@ -1,0 +1,405 @@
+﻿use sea_orm_migration::prelude::*;
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table(
+                Table::create()
+                    .table(ServiceTypes::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(ServiceTypes::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(ServiceTypes::Name)
+                            .string()
+                            .string_len(100)
+                            .not_null()
+                            .unique_key(),
+                    )
+                    .col(ColumnDef::new(ServiceTypes::Description).string().string_len(255))
+                    .col(
+                        ColumnDef::new(ServiceTypes::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default("CURRENT_TIMESTAMP"),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(CreatorProfiles::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(CreatorProfiles::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(CreatorProfiles::UserId)
+                            .integer()
+                            .not_null()
+                            .unique_key(),
+                    )
+                    .col(ColumnDef::new(CreatorProfiles::Introduction).text())
+                    .col(ColumnDef::new(CreatorProfiles::Bio).text())
+                    .col(
+                        ColumnDef::new(CreatorProfiles::Rating)
+                            .decimal_len(2, 1)
+                            .not_null()
+                            .default("5.0"),
+                    )
+                    .col(
+                        ColumnDef::new(CreatorProfiles::CertificationLevel)
+                            .string()
+                            .string_len(20)
+                            .not_null()
+                            .default("standard"),
+                    )
+                    .col(ColumnDef::new(CreatorProfiles::ServiceAreas).json())
+                    .col(ColumnDef::new(CreatorProfiles::AvailableSlots).json())
+                    .col(ColumnDef::new(CreatorProfiles::StyleVectorId).string().string_len(64))
+                    .col(ColumnDef::new(CreatorProfiles::PortfolioUrl).string().string_len(255))
+                    .col(
+                        ColumnDef::new(CreatorProfiles::TotalServices)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(CreatorProfiles::TotalAppointments)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(CreatorProfiles::TotalIncome)
+                            .decimal_len(10, 2)
+                            .not_null()
+                            .default("0.00"),
+                    )
+                    .col(
+                        ColumnDef::new(CreatorProfiles::AvgRating)
+                            .decimal_len(3, 2)
+                            .not_null()
+                            .default("0.00"),
+                    )
+                    .col(
+                        ColumnDef::new(CreatorProfiles::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default("CURRENT_TIMESTAMP"),
+                    )
+                    .col(
+                        ColumnDef::new(CreatorProfiles::UpdatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default("CURRENT_TIMESTAMP"),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_creator_profiles_user")
+                            .from(CreatorProfiles::Table, CreatorProfiles::UserId)
+                            .to(Users::Table, Users::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(Services::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Services::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(Services::CreatorId).integer().not_null())
+                    .col(ColumnDef::new(Services::TypeId).integer().not_null())
+                    .col(
+                        ColumnDef::new(Services::Title)
+                            .string()
+                            .string_len(255)
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(Services::Description).text())
+                    .col(
+                        ColumnDef::new(Services::Price)
+                            .decimal_len(10, 2)
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(Services::Duration).integer())
+                    .col(ColumnDef::new(Services::CoverImageUrl).string().string_len(255))
+                    .col(ColumnDef::new(Services::Location).string().string_len(255))
+                    .col(ColumnDef::new(Services::Tags).string().string_len(255))
+                    .col(ColumnDef::new(Services::Options).json())
+                    .col(
+                        ColumnDef::new(Services::IsActive)
+                            .boolean()
+                            .not_null()
+                            .default(true),
+                    )
+                    .col(
+                        ColumnDef::new(Services::IsFeatured)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
+                    .col(
+                        ColumnDef::new(Services::AppointmentsCount)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(ColumnDef::new(Services::StyleVectorId).string().string_len(64))
+                    .col(
+                        ColumnDef::new(Services::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default("CURRENT_TIMESTAMP"),
+                    )
+                    .col(
+                        ColumnDef::new(Services::UpdatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default("CURRENT_TIMESTAMP"),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_services_creator")
+                            .from(Services::Table, Services::CreatorId)
+                            .to(CreatorProfiles::Table, CreatorProfiles::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_services_type")
+                            .from(Services::Table, Services::TypeId)
+                            .to(ServiceTypes::Table, ServiceTypes::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(Appointments::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Appointments::Id)
+                            .integer()
+                            .not_null()
+                            .auto_increment()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(Appointments::UserId).integer().not_null())
+                    .col(ColumnDef::new(Appointments::CreatorId).integer().not_null())
+                    .col(ColumnDef::new(Appointments::ServiceId).integer().not_null())
+                    .col(
+                        ColumnDef::new(Appointments::AppointmentDate)
+                            .string()
+                            .string_len(10)
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Appointments::StartTime)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Appointments::EndTime)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(Appointments::Location).string().string_len(255))
+                    .col(
+                        ColumnDef::new(Appointments::Status)
+                            .string()
+                            .string_len(20)
+                            .not_null()
+                            .default("pending"),
+                    )
+                    .col(
+                        ColumnDef::new(Appointments::TotalPrice)
+                            .decimal_len(10, 2)
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(Appointments::Notes).text())
+                    .col(
+                        ColumnDef::new(Appointments::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default("CURRENT_TIMESTAMP"),
+                    )
+                    .col(
+                        ColumnDef::new(Appointments::UpdatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null()
+                            .default("CURRENT_TIMESTAMP"),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_appointments_user")
+                            .from(Appointments::Table, Appointments::UserId)
+                            .to(Users::Table, Users::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_appointments_creator")
+                            .from(Appointments::Table, Appointments::CreatorId)
+                            .to(CreatorProfiles::Table, CreatorProfiles::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_appointments_service")
+                            .from(Appointments::Table, Appointments::ServiceId)
+                            .to(Services::Table, Services::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_services_creator")
+                    .table(Services::Table)
+                    .col(Services::CreatorId)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_appointments_creator_time")
+                    .table(Appointments::Table)
+                    .col(Appointments::CreatorId)
+                    .col(Appointments::StartTime)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_appointments_user")
+                    .table(Appointments::Table)
+                    .col(Appointments::UserId)
+                    .to_owned(),
+            )
+            .await
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(Appointments::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Services::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(CreatorProfiles::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(ServiceTypes::Table).to_owned())
+            .await
+    }
+}
+
+#[derive(Iden)]
+enum ServiceTypes {
+    Table,
+    Id,
+    Name,
+    Description,
+    CreatedAt,
+}
+
+#[derive(Iden)]
+enum CreatorProfiles {
+    Table,
+    Id,
+    UserId,
+    Introduction,
+    Bio,
+    Rating,
+    CertificationLevel,
+    ServiceAreas,
+    AvailableSlots,
+    StyleVectorId,
+    PortfolioUrl,
+    TotalServices,
+    TotalAppointments,
+    TotalIncome,
+    AvgRating,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(Iden)]
+enum Services {
+    Table,
+    Id,
+    CreatorId,
+    TypeId,
+    Title,
+    Description,
+    Price,
+    Duration,
+    CoverImageUrl,
+    Location,
+    Tags,
+    Options,
+    IsActive,
+    IsFeatured,
+    AppointmentsCount,
+    StyleVectorId,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(Iden)]
+enum Appointments {
+    Table,
+    Id,
+    UserId,
+    CreatorId,
+    ServiceId,
+    AppointmentDate,
+    StartTime,
+    EndTime,
+    Location,
+    Status,
+    TotalPrice,
+    Notes,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(Iden)]
+enum Users {
+    Table,
+    Id,
+}

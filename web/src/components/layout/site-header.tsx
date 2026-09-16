@@ -10,7 +10,7 @@ export default function SiteHeader() {
 
   const links = [
     { href: "/explore", label: "探索" },
-    { href: "/#services", label: "服务" },
+    { href: "/services", label: "服务" },
     { href: "/#ai", label: "AI 助手" }
   ];
 

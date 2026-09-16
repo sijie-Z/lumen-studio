@@ -7,13 +7,27 @@ import {
   Image as ImageIcon,
   LogOut,
   Sparkles,
+  Store,
+  CalendarClock,
   User
 } from "lucide-solid";
-import { createEffect, createSignal, For, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import { fetchMe, isAuthenticated, uploadImage } from "../lib/auth-api";
 import { createWork, listWorks } from "../lib/works-api";
+import {
+  createService,
+  listAppointments,
+  listCreators,
+  listServiceTypes,
+  transitionAppointment,
+  upsertProfile
+} from "../lib/marketplace-api";
 import { useAuthStore } from "../stores/auth";
 import Assistant from "../components/ai/assistant";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Input } from "../components/ui/input";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -23,6 +37,19 @@ export default function Dashboard() {
   const [preview, setPreview] = createSignal<string | null>(null);
   const [uploading, setUploading] = createSignal(false);
   const [error, setError] = createSignal("");
+  const [intro, setIntro] = createSignal("");
+  const [bio, setBio] = createSignal("");
+  const [savingProfile, setSavingProfile] = createSignal(false);
+  const [profileMsg, setProfileMsg] = createSignal("");
+  const [serviceForm, setServiceForm] = createSignal({
+    type_id: 1,
+    title: "",
+    price: "",
+    duration: "",
+    location: ""
+  });
+  const [savingService, setSavingService] = createSignal(false);
+  const [serviceMsg, setServiceMsg] = createSignal("");
 
   const me = createQuery(() => ({
     queryKey: ["me"] as const,
@@ -34,6 +61,16 @@ export default function Dashboard() {
     queryFn: listWorks,
     staleTime: 0
   }));
+  const creators = createQuery(() => ({ queryKey: ["creators"] as const, queryFn: listCreators }));
+  const serviceTypes = createQuery(() => ({ queryKey: ["service-types"] as const, queryFn: listServiceTypes }));
+  const appointments = createQuery(() => ({
+    queryKey: ["appointments"] as const,
+    queryFn: listAppointments,
+    enabled: isAuthenticated()
+  }));
+  const myProfile = createMemo(() =>
+    creators.data?.find((item) => item.user_id === me.data?.id)
+  );
 
   createEffect(() => {
     if (!isAuthenticated()) navigate("/login");
@@ -80,6 +117,59 @@ export default function Dashboard() {
   function signOut() {
     auth.signOut();
     navigate("/");
+  }
+
+  async function saveProfile() {
+    setSavingProfile(true);
+    setProfileMsg("");
+    try {
+      const profile = await upsertProfile({
+        introduction: intro() || undefined,
+        bio: bio() || undefined
+      });
+      await queryClient.invalidateQueries({ queryKey: ["creators"] });
+      setProfileMsg(`创作者资料已保存（ID ${profile.id}）`);
+    } catch (err) {
+      setProfileMsg(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  function updateService(field: string, value: string) {
+    setServiceForm({ ...serviceForm(), [field]: value });
+  }
+
+  async function publishService() {
+    const form = serviceForm();
+    if (!form.title.trim() || !form.price.trim()) {
+      setServiceMsg("请填写服务标题和价格");
+      return;
+    }
+    setSavingService(true);
+    setServiceMsg("");
+    try {
+      await createService({
+        type_id: Number(form.type_id),
+        title: form.title,
+        price: form.price,
+        duration: form.duration ? Number(form.duration) : undefined,
+        location: form.location || undefined
+      });
+      await queryClient.invalidateQueries({ queryKey: ["services"] });
+      await queryClient.invalidateQueries({ queryKey: ["creators"] });
+      setServiceForm({ type_id: form.type_id, title: "", price: "", duration: "", location: "" });
+      setServiceMsg("服务已发布");
+    } catch (err) {
+      setServiceMsg(err instanceof Error ? err.message : "发布失败");
+    } finally {
+      setSavingService(false);
+    }
+  }
+
+  async function cancelAppointment(id: number) {
+    await transitionAppointment(id, "cancelled");
+    await queryClient.invalidateQueries({ queryKey: ["appointments"] });
   }
 
   return (
@@ -273,8 +363,162 @@ export default function Dashboard() {
             </div>
           </Show>
         </section>
+
+        <section class="mt-10 grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle class="flex items-center gap-2">
+                <User size={18} class="text-primary" />
+                创作者资料
+              </CardTitle>
+            </CardHeader>
+            <CardContent class="space-y-4">
+              <label class="block">
+                <span class="mb-2 block text-sm text-muted">简介</span>
+                <Input
+                  value={intro()}
+                  onInput={(event) => setIntro(event.currentTarget.value)}
+                  placeholder="一句话介绍你的风格"
+                />
+              </label>
+              <label class="block">
+                <span class="mb-2 block text-sm text-muted">个人主页</span>
+                <Input
+                  value={bio()}
+                  onInput={(event) => setBio(event.currentTarget.value)}
+                  placeholder="详细介绍你的经历与作品"
+                />
+              </label>
+              {profileMsg() && <p class="text-sm text-muted">{profileMsg()}</p>}
+              <Button onClick={saveProfile} disabled={savingProfile()}>
+                {savingProfile() ? "保存中" : myProfile() ? "更新资料" : "成为创作者"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle class="flex items-center gap-2">
+                <Store size={18} class="text-primary" />
+                发布服务
+              </CardTitle>
+            </CardHeader>
+            <CardContent class="space-y-4">
+              <div class="grid gap-4 sm:grid-cols-2">
+                <label class="block">
+                  <span class="mb-2 block text-sm text-muted">服务类型</span>
+                  <select
+                    value={serviceForm().type_id}
+                    onChange={(event) => updateService("type_id", event.currentTarget.value)}
+                    class="h-10 w-full rounded-lg border border-line bg-background px-3 text-sm text-foreground outline-none focus:border-ring"
+                  >
+                    <For each={serviceTypes.data ?? []}>
+                      {(type) => <option value={type.id}>{type.name}</option>}
+                    </For>
+                  </select>
+                </label>
+                <label class="block">
+                  <span class="mb-2 block text-sm text-muted">价格（元）</span>
+                  <Input
+                    value={serviceForm().price}
+                    onInput={(event) => updateService("price", event.currentTarget.value)}
+                    placeholder="3999"
+                    inputMode="decimal"
+                  />
+                </label>
+              </div>
+              <label class="block">
+                <span class="mb-2 block text-sm text-muted">服务标题</span>
+                <Input
+                  value={serviceForm().title}
+                  onInput={(event) => updateService("title", event.currentTarget.value)}
+                  placeholder="例如：城市人像写真"
+                />
+              </label>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <label class="block">
+                  <span class="mb-2 block text-sm text-muted">时长（分钟）</span>
+                  <Input
+                    value={serviceForm().duration}
+                    onInput={(event) => updateService("duration", event.currentTarget.value)}
+                    placeholder="120"
+                    inputMode="numeric"
+                  />
+                </label>
+                <label class="block">
+                  <span class="mb-2 block text-sm text-muted">拍摄地点</span>
+                  <Input
+                    value={serviceForm().location}
+                    onInput={(event) => updateService("location", event.currentTarget.value)}
+                    placeholder="上海"
+                  />
+                </label>
+              </div>
+              {serviceMsg() && <p class="text-sm text-muted">{serviceMsg()}</p>}
+              <Button onClick={publishService} disabled={savingService()}>
+                {savingService() ? "发布中" : "发布服务"}
+              </Button>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section class="mt-10">
+          <div class="mb-6 flex items-center gap-3">
+            <CalendarClock size={20} class="text-primary" />
+            <h2 class="font-display text-2xl font-semibold">我的预约</h2>
+          </div>
+          <Show
+            when={(appointments.data?.length ?? 0) > 0}
+            fallback={
+              <div class="grid min-h-32 place-items-center rounded-lg border border-dashed border-line text-sm text-muted">
+                还没有预约，去服务列表挑一个吧
+              </div>
+            }
+          >
+            <div class="space-y-3">
+              <For each={appointments.data ?? []}>
+                {(item) => (
+                  <div class="flex flex-col gap-3 rounded-lg border border-line bg-secondary p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div class="flex flex-wrap items-center gap-3">
+                        <span class="font-medium">{new Date(item.start_time).toLocaleString("zh-CN")}</span>
+                        <StatusBadge status={item.status} />
+                      </div>
+                      <p class="mt-1 text-sm text-muted">
+                        服务 #{item.service_id} · ¥{item.total_price}
+                      </p>
+                    </div>
+                    <Show when={["pending", "confirmed", "ongoing"].includes(item.status)}>
+                      <Button variant="outline" size="sm" onClick={() => cancelAppointment(item.id)}>
+                        取消预约
+                      </Button>
+                    </Show>
+                  </div>
+                )}
+              </For>
+            </div>
+          </Show>
+        </section>
       </main>
       <Assistant />
     </div>
   );
+}
+
+function StatusBadge(props: { status: string }) {
+  const labels: Record<string, string> = {
+    pending: "待确认",
+    confirmed: "已确认",
+    ongoing: "进行中",
+    completed: "已完成",
+    cancelled: "已取消",
+    refunded: "已退款"
+  };
+  const variant: "default" | "accent" | "destructive" =
+    props.status === "cancelled" || props.status === "refunded"
+      ? "destructive"
+      : props.status === "completed"
+        ? "accent"
+        : "default";
+  return <Badge variant={variant}>{labels[props.status] ?? props.status}</Badge>;
 }

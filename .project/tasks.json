@@ -50,6 +50,12 @@
       "status": "done",
       "started": "2026-09-16 16:42",
       "finished": "2026-09-16 16:42"
+    },
+    {
+      "name": "Creator profile + Service CRUD + appointments",
+      "status": "done",
+      "started": "2026-09-16 17:29",
+      "finished": "2026-09-16 17:29"
     }
   ]
 }
