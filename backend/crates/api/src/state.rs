@@ -5,6 +5,7 @@ use services::auth_service::AuthService;
 use services::creator_service::CreatorService;
 use services::service_catalog::ServiceCatalog;
 use services::work_service::WorkService;
+use services::admin_service::AdminService;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -15,4 +16,5 @@ pub struct AppState {
     pub creators: CreatorService,
     pub services: ServiceCatalog,
     pub appointments: AppointmentService,
+    pub admin: AdminService,
 }

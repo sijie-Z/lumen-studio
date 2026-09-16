@@ -62,6 +62,12 @@
       "status": "done",
       "started": "2026-09-16 21:32",
       "finished": "2026-09-16 21:32"
+    },
+    {
+      "name": "Three role interfaces: admin, creator, customer",
+      "status": "done",
+      "started": "2026-09-17 07:16",
+      "finished": "2026-09-17 07:16"
     }
   ]
 }

@@ -18,4 +18,5 @@
 - Design system + ui components + explore/work pages
 - Creator profile + Service CRUD + appointments
 - Seed realistic creators/services/works with real photos
+- Three role interfaces: admin, creator, customer
 

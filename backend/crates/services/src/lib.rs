@@ -5,3 +5,4 @@ pub mod creator_service;
 pub mod service_catalog;
 pub mod appointment_service;
 pub mod seed;
+pub mod admin_service;

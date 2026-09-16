@@ -49,7 +49,8 @@ async fn main() -> anyhow::Result<()> {
         works: services::work_service::WorkService::new(db.clone()),
         creators: services::creator_service::CreatorService::new(db.clone()),
         services: services_catalog,
-        appointments: services::appointment_service::AppointmentService::new(db),
+        appointments: services::appointment_service::AppointmentService::new(db.clone()),
+        admin: services::admin_service::AdminService::new(db),
     };
 
     let cors = CorsLayer::new()

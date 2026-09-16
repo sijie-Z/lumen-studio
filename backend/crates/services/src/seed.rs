@@ -1,5 +1,9 @@
 use chrono::{Duration, Utc};
 use common::AppError;
+use argon2::{
+    password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
+    Argon2,
+};
 use db::entities::{
     creator_profile as profile_entity, service as service_entity, user as user_entity,
     work as work_entity,
@@ -190,11 +194,46 @@ pub async fn seed_demo_data(db: &DatabaseConnection) -> Result<(), AppError> {
         .await
         .map_err(AppError::from_anyhow)?;
 
+    let now = Utc::now();
+    // 管理员账号
+    user_entity::ActiveModel {
+        username: Set("admin".into()),
+        password_hash: Set(hash("admin123")),
+        nickname: Set("平台管理员".into()),
+        avatar_url: Set(None),
+        status: Set("active".into()),
+        role: Set("admin".into()),
+        verification_status: Set("verified".into()),
+        created_at: Set(now),
+        updated_at: Set(now),
+        ..Default::default()
+    }
+    .insert(db)
+    .await
+    .map_err(AppError::from_anyhow)?;
+
+    // 普通客户账号
+    user_entity::ActiveModel {
+        username: Set("customer".into()),
+        password_hash: Set(hash("customer123")),
+        nickname: Set("林小满".into()),
+        avatar_url: Set(None),
+        status: Set("active".into()),
+        role: Set("user".into()),
+        verification_status: Set("unverified".into()),
+        created_at: Set(now),
+        updated_at: Set(now),
+        ..Default::default()
+    }
+    .insert(db)
+    .await
+    .map_err(AppError::from_anyhow)?;
+
     for (index, creator) in creators().iter().enumerate() {
         let now = Utc::now();
         let user = user_entity::ActiveModel {
             username: Set(creator.username.to_string()),
-            password_hash: Set("seeded-not-loginable".into()),
+            password_hash: Set(hash("creator123")),
             nickname: Set(creator.nickname.to_string()),
             avatar_url: Set(Some(creator.avatar.to_string())),
             status: Set("active".into()),
@@ -277,4 +316,12 @@ pub async fn seed_demo_data(db: &DatabaseConnection) -> Result<(), AppError> {
     }
 
     Ok(())
+}
+
+fn hash(password: &str) -> String {
+    let salt = SaltString::generate(&mut OsRng);
+    Argon2::default()
+        .hash_password(password.as_bytes(), &salt)
+        .map(|h| h.to_string())
+        .expect("argon2 hash")
 }

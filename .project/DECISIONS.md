@@ -96,3 +96,11 @@
 
 *2026-09-16 21:32*
 
+## ADR-013: Three role interfaces with seeded login accounts
+
+**Reason**: admin/customer/creators each get a loginable account and a dedicated surface; login routes by role
+
+**Impact**: Passwords: admin/admin123, customer/customer123, creators/creator123
+
+*2026-09-17 07:16*
+

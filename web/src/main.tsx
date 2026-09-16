@@ -13,6 +13,8 @@ import WorkDetail from "./pages/work-detail";
 import Services from "./pages/services";
 import ServiceDetail from "./pages/service-detail";
 import CreatorProfile from "./pages/creator-profile";
+import Admin from "./pages/admin";
+import Account from "./pages/account";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +37,8 @@ render(
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/dashboard" component={Dashboard} />
+        <Route path="/account" component={Account} />
+        <Route path="/admin" component={Admin} />
         <Route path="/explore" component={Explore} />
         <Route path="/works/:id" component={WorkDetail} />
         <Route path="/services" component={Services} />

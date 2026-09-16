@@ -1,11 +1,13 @@
 import { createQuery, useQueryClient } from "@tanstack/solid-query";
-import { useNavigate } from "@solidjs/router";
+import { A, useNavigate } from "@solidjs/router";
 import {
   Camera,
   CalendarDays,
   CloudUpload,
+  Compass,
   Image as ImageIcon,
   LogOut,
+  ShieldCheck,
   Sparkles,
   Store,
   CalendarClock,
@@ -186,14 +188,32 @@ export default function Dashboard() {
             </span>
             <span class="font-display text-lg font-semibold">Lumina Studio</span>
           </button>
-          <button
-            type="button"
-            onClick={signOut}
-            class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-muted transition-colors hover:border-coral hover:text-coral"
-          >
-            <LogOut size={16} />
-            <span class="hidden sm:inline">退出登录</span>
-          </button>
+          <div class="flex items-center gap-2">
+            <Show when={me.data?.role === "admin"}>
+              <A
+                href="/admin"
+                class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-muted no-underline transition-colors hover:text-foreground"
+              >
+                <ShieldCheck size={16} />
+                <span class="hidden sm:inline">管理后台</span>
+              </A>
+            </Show>
+            <A
+              href="/account"
+              class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-muted no-underline transition-colors hover:text-foreground"
+            >
+              <Compass size={16} />
+              <span class="hidden sm:inline">客户中心</span>
+            </A>
+            <button
+              type="button"
+              onClick={signOut}
+              class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-muted transition-colors hover:border-coral hover:text-coral"
+            >
+              <LogOut size={16} />
+              <span class="hidden sm:inline">退出登录</span>
+            </button>
+          </div>
         </div>
       </header>
 

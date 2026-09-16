@@ -10,22 +10,23 @@
 - [x] Design system + ui components + explore/work pages
 - [x] Creator profile + Service CRUD + appointments
 - [x] Seed realistic creators/services/works with real photos
+- [x] Three role interfaces: admin, creator, customer
 
 ## Recent Changes
+- web/src/lib/admin-api.ts
+- web/src/pages/account.tsx
+- web/src/pages/admin.tsx
+- backend/crates/api/src/routes/admin.rs
+- backend/crates/services/src/admin_service.rs
 - web/src/pages/home.tsx
 - backend/crates/services/src/work_service.rs
 - backend/crates/db/src/migrations/m20260916_000004_add_work_category.rs
 - backend/crates/services/src/seed.rs
 - web/src/pages/creator-profile.tsx
-- web/src/pages/service-detail.tsx
-- web/src/pages/services.tsx
-- web/src/lib/marketplace-api.ts
-- backend/crates/api/src/routes/appointments.rs
-- backend/crates/api/src/routes/service_routes.rs
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
 - smoke test still writes to main photography.db
 
 ## Next Step
-- Isolate smoke tests to a test DB; creator avatars + reviews
+- Payment module + creator appointment confirm + reviews
