@@ -53,6 +53,12 @@
       "reason": "Uploaded files were only browser-local; now stored in works table and listed publicly",
       "impact": "POST/GET /api/v1/works; dashboard and home read the same source",
       "date": "2026-09-15 23:47"
+    },
+    {
+      "title": "Borrow shadcn token/variant patterns for SolidJS",
+      "reason": "React shadcn/Vercel templates can't be copied directly; adapt their design tokens and cva variant model into SolidJS + UnoCSS",
+      "impact": "ui/ component library is the single source of truth for styling",
+      "date": "2026-09-16 16:42"
     }
   ]
 }

@@ -22,6 +22,7 @@ node_modules/
 dist/
 *.tsbuildinfo
 .smoke/
+.project/reference/
 
 ### Python
 __pycache__/

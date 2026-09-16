@@ -30,3 +30,10 @@
 - **Summary**: Persist uploaded works in DB and show on home
 - **Next**: Complete: Persist uploaded works in DB and show on home
 
+### [2026-09-16 16:42] main — Design system + ui components + explore/work pages
+
+- **Task**: Design system + ui components + explore/work pages
+- **Branch**: main
+- **Summary**: Design system + ui components + explore/work pages
+- **Next**: Complete: Design system + ui components + explore/work pages
+

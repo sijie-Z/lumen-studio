@@ -72,3 +72,11 @@
 
 *2026-09-15 23:47*
 
+## ADR-010: Borrow shadcn token/variant patterns for SolidJS
+
+**Reason**: React shadcn/Vercel templates can't be copied directly; adapt their design tokens and cva variant model into SolidJS + UnoCSS
+
+**Impact**: ui/ component library is the single source of truth for styling
+
+*2026-09-16 16:42*
+

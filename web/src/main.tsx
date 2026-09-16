@@ -8,6 +8,8 @@ import Home from "./pages/home";
 import Login from "./pages/login";
 import Register from "./pages/register";
 import Dashboard from "./pages/dashboard";
+import Explore from "./pages/explore";
+import WorkDetail from "./pages/work-detail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +32,8 @@ render(
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/dashboard" component={Dashboard} />
+        <Route path="/explore" component={Explore} />
+        <Route path="/works/:id" component={WorkDetail} />
         <Route path="*" component={Home} />
       </Router>
     </QueryClientProvider>

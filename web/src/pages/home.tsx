@@ -26,12 +26,12 @@ const categories = [
 ];
 
 const works = [
-  { src: "/demo/work-1.jpg", title: "海边晨光", creator: "陈屿", tag: "人像" },
-  { src: "/demo/work-2.jpg", title: "城市夜色", creator: "林野", tag: "街拍" },
-  { src: "/demo/work-3.jpg", title: "花间新娘", creator: "苏禾", tag: "婚礼" },
-  { src: "/demo/work-4.jpg", title: "静物叙事", creator: "周墨", tag: "商业" },
-  { src: "/demo/work-5.jpg", title: "旷野之间", creator: "顾川", tag: "旅行" },
-  { src: "/demo/work-6.jpg", title: "光影肖像", creator: "许言", tag: "人像" }
+  { src: "/demo/work-1.jpg", title: "海边晨光", creator: "陈屿", tag: "人像", href: "/explore" },
+  { src: "/demo/work-2.jpg", title: "城市夜色", creator: "林野", tag: "街拍", href: "/explore" },
+  { src: "/demo/work-3.jpg", title: "花间新娘", creator: "苏禾", tag: "婚礼", href: "/explore" },
+  { src: "/demo/work-4.jpg", title: "静物叙事", creator: "周墨", tag: "商业", href: "/explore" },
+  { src: "/demo/work-5.jpg", title: "旷野之间", creator: "顾川", tag: "旅行", href: "/explore" },
+  { src: "/demo/work-6.jpg", title: "光影肖像", creator: "许言", tag: "人像", href: "/explore" }
 ];
 
 export default function Home() {
@@ -44,7 +44,8 @@ export default function Home() {
       src: item.image_url,
       title: item.title ?? "未命名作品",
       creator: "新创作者",
-      tag: "用户作品"
+      tag: "用户作品",
+      href: `/works/${item.id}`
     }));
     return [...uploaded, ...works].slice(0, 6);
   });
@@ -186,8 +187,8 @@ export default function Home() {
             </div>
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {displayWorks().map((work) => (
-                <a
-                  href="/#top"
+                <A
+                  href={work.href}
                   class="group overflow-hidden rounded-lg border border-line bg-surface no-underline"
                 >
                   <div class="aspect-[4/5] overflow-hidden">
@@ -207,7 +208,7 @@ export default function Home() {
                       {work.tag}
                     </span>
                   </div>
-                </a>
+                </A>
               ))}
             </div>
           </div>

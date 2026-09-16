@@ -9,7 +9,7 @@ export default function SiteHeader() {
   const [open, setOpen] = createSignal(false);
 
   const links = [
-    { href: "/#creators", label: "创作者" },
+    { href: "/explore", label: "探索" },
     { href: "/#services", label: "服务" },
     { href: "/#ai", label: "AI 助手" }
   ];

@@ -68,6 +68,19 @@ def main() -> None:
         page.goto("http://127.0.0.1:5173", wait_until="networkidle")
         page.wait_for_selector('img[src*="/uploads/"]', timeout=10000)
 
+        page.goto("http://127.0.0.1:5173/explore", wait_until="networkidle")
+        page.wait_for_selector('a[href^="/works/"]', timeout=10000)
+        explore_overflow = page.evaluate(
+            "document.documentElement.scrollWidth - window.innerWidth"
+        )
+        if explore_overflow > 1:
+            raise AssertionError(f"Explore page has {explore_overflow}px overflow")
+        page.screenshot(path=str(OUT_DIR / "explore-desktop.png"), full_page=True)
+
+        page.locator('a[href^="/works/"]').first.click()
+        page.wait_for_selector('img[src*="/uploads/"]', timeout=10000)
+        page.screenshot(path=str(OUT_DIR / "work-detail-desktop.png"), full_page=True)
+
         page.set_viewport_size({"width": 390, "height": 844})
         page.goto("http://127.0.0.1:5173", wait_until="networkidle")
         overflow = page.evaluate(
