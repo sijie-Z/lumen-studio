@@ -1,5 +1,7 @@
 {
   "recent_files": [
+    "web/src/pages/admin.tsx",
+    "web/scripts/onboarding_notification_e2e.py",
     "web/src/components/layout/site-header.tsx",
     "web/src/lib/notification-api.ts",
     "backend/crates/db/src/migrations/m20260928_000007_create_notifications.rs",
@@ -7,16 +9,14 @@
     "backend/crates/services/src/notification_service.rs",
     "web/src/pages/service-detail.tsx",
     "web/src/pages/home.tsx",
-    "web/src/pages/dashboard.tsx",
-    "web/src/pages/account.tsx",
-    "web/src/components/onboarding/empty-state.tsx"
+    "web/src/pages/dashboard.tsx"
   ],
   "known_issues": [
     "Rust MSVC linker missing — need VS Build Tools or GNU toolchain",
     "smoke test still writes to main photography.db",
     "Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents"
   ],
-  "next_step": "Browser E2E: appointment/payment/completion/withdrawal notifications and unread badge",
+  "next_step": "Inspect onboarding-notify screenshots and consider WebSocket real-time notification delivery",
   "branch": "main",
   "active_work": [
     {
@@ -69,6 +69,10 @@
     },
     {
       "name": "Message notification system",
+      "status": "done"
+    },
+    {
+      "name": "Onboarding and notification browser E2E",
       "status": "done"
     }
   ]

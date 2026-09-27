@@ -15,6 +15,7 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import { NotificationBell } from "../components/layout/site-header";
 import { EmptyState } from "../components/onboarding/empty-state";
 import { StepGuide, type GuideStep } from "../components/onboarding/step-guide";
 import { fetchMe, isAuthenticated } from "../lib/auth-api";
@@ -192,17 +193,20 @@ export default function Account() {
             </span>
             <span class="font-display text-lg font-semibold">我的账户</span>
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              auth.signOut();
-              navigate("/");
-            }}
-            class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-muted hover:text-foreground"
-          >
-            <LogOut size={16} />
-            <span class="hidden sm:inline">退出</span>
-          </button>
+          <div class="flex items-center gap-3">
+            <NotificationBell />
+            <button
+              type="button"
+              onClick={() => {
+                auth.signOut();
+                navigate("/");
+              }}
+              class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-muted hover:text-foreground"
+            >
+              <LogOut size={16} />
+              <span class="hidden sm:inline">退出</span>
+            </button>
+          </div>
         </div>
       </header>
 

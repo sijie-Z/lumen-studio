@@ -30,6 +30,7 @@ import {
 } from "../lib/marketplace-api";
 import { useAuthStore } from "../stores/auth";
 import Assistant from "../components/ai/assistant";
+import { NotificationBell } from "../components/layout/site-header";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -297,6 +298,7 @@ export default function Dashboard() {
             <span class="font-display text-lg font-semibold">Lumina Studio</span>
           </button>
           <div class="flex items-center gap-2">
+            <NotificationBell />
             <Show when={me.data?.role === "admin"}>
               <A
                 href="/admin"

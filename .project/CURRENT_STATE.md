@@ -16,8 +16,11 @@
 - [x] Withdrawal browser E2E and release commit
 - [x] User onboarding system
 - [x] Message notification system
+- [x] Onboarding and notification browser E2E
 
 ## Recent Changes
+- web/src/pages/admin.tsx
+- web/scripts/onboarding_notification_e2e.py
 - web/src/components/layout/site-header.tsx
 - web/src/lib/notification-api.ts
 - backend/crates/db/src/migrations/m20260928_000007_create_notifications.rs
@@ -26,8 +29,6 @@
 - web/src/pages/service-detail.tsx
 - web/src/pages/home.tsx
 - web/src/pages/dashboard.tsx
-- web/src/pages/account.tsx
-- web/src/components/onboarding/empty-state.tsx
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
@@ -35,4 +36,4 @@
 - Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents
 
 ## Next Step
-- Browser E2E: appointment/payment/completion/withdrawal notifications and unread badge
+- Inspect onboarding-notify screenshots and consider WebSocket real-time notification delivery

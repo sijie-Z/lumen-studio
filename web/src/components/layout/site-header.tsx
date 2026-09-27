@@ -10,7 +10,7 @@ import {
 } from "../../lib/notification-api";
 import { useAuthStore } from "../../stores/auth";
 
-function NotificationBell() {
+export function NotificationBell() {
   const auth = useAuthStore();
   const queryClient = useQueryClient();
   const [open, setOpen] = createSignal(false);

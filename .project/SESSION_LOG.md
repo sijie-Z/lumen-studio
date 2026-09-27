@@ -93,3 +93,10 @@
 - **Summary**: Implemented notifications table/entity/migration, NotificationService, authenticated list/unread/read/read-all APIs, event triggers for appointment/payment/completion/withdrawal, and a polling notification bell in the shared header. cargo check -p api, cargo test -p api (7 tests), and pnpm build passed.
 - **Next**: Browser E2E: appointment/payment/completion/withdrawal notifications and unread badge
 
+### [2026-09-27 16:48] main — Onboarding and notification browser E2E
+
+- **Task**: Onboarding and notification browser E2E
+- **Branch**: main
+- **Summary**: Added isolated Playwright E2E for onboarding and notifications. Fixed missing notification bell on account/dashboard/admin role headers. Verified full customer/creator/admin flow, notification badges and read-all, onboarding dismissal persistence, 14 screenshots, port cleanup, and unchanged main DB SHA-256.
+- **Next**: Inspect onboarding-notify screenshots and consider WebSocket real-time notification delivery
+

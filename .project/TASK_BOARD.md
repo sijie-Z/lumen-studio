@@ -24,4 +24,5 @@
 - Withdrawal browser E2E and release commit
 - User onboarding system
 - Message notification system
+- Onboarding and notification browser E2E
 

@@ -98,6 +98,12 @@
       "status": "done",
       "started": "2026-09-27 16:40",
       "finished": "2026-09-27 16:40"
+    },
+    {
+      "name": "Onboarding and notification browser E2E",
+      "status": "done",
+      "started": "2026-09-27 16:48",
+      "finished": "2026-09-27 16:48"
     }
   ]
 }
