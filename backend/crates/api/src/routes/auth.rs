@@ -1,3 +1,4 @@
+use crate::middleware::auth::AuthUser;
 use crate::state::AppState;
 use axum::{
     extract::State,
@@ -6,7 +7,6 @@ use axum::{
 };
 use common::{ApiResponse, AppError};
 use services::dto::{AuthResponse, LoginInput, RegisterInput, UserDto};
-use crate::middleware::auth::AuthUser;
 
 pub fn router() -> Router<AppState> {
     Router::new()

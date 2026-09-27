@@ -15,10 +15,12 @@ import {
 } from "lucide-solid";
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import { fetchMe, isAuthenticated, uploadImage } from "../lib/auth-api";
+import { ApiError } from "../lib/api";
 import { createWork, listWorks } from "../lib/works-api";
 import {
   createService,
   listAppointments,
+  listCreatorAppointments,
   listCreators,
   listServiceTypes,
   transitionAppointment,
@@ -52,6 +54,9 @@ export default function Dashboard() {
   });
   const [savingService, setSavingService] = createSignal(false);
   const [serviceMsg, setServiceMsg] = createSignal("");
+  const [appointmentActionId, setAppointmentActionId] = createSignal<number | null>(null);
+  const [appointmentMsg, setAppointmentMsg] = createSignal("");
+  const [appointmentError, setAppointmentError] = createSignal("");
 
   const me = createQuery(() => ({
     queryKey: ["me"] as const,
@@ -70,9 +75,18 @@ export default function Dashboard() {
     queryFn: listAppointments,
     enabled: isAuthenticated()
   }));
+  const creatorAppointments = createQuery(() => ({
+    queryKey: ["creator-appointments"] as const,
+    queryFn: listCreatorAppointments,
+    enabled: isAuthenticated()
+  }));
   const myProfile = createMemo(() =>
     creators.data?.find((item) => item.user_id === me.data?.id)
   );
+  const creatorAppointmentsUnavailable = () => {
+    const error = creatorAppointments.error;
+    return error instanceof ApiError && [403, 404].includes(error.status);
+  };
 
   createEffect(() => {
     if (!isAuthenticated()) navigate("/login");
@@ -172,6 +186,24 @@ export default function Dashboard() {
   async function cancelAppointment(id: number) {
     await transitionAppointment(id, "cancelled");
     await queryClient.invalidateQueries({ queryKey: ["appointments"] });
+  }
+
+  async function advanceAppointment(id: number, status: "ongoing" | "completed") {
+    setAppointmentActionId(id);
+    setAppointmentMsg("");
+    setAppointmentError("");
+    try {
+      await transitionAppointment(id, status);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["appointments"] }),
+        queryClient.invalidateQueries({ queryKey: ["creator-appointments"] })
+      ]);
+      setAppointmentMsg(status === "ongoing" ? "预约已开始。" : "预约已完成。");
+    } catch (err) {
+      setAppointmentError(err instanceof Error ? err.message : "预约状态更新失败，请稍后重试。");
+    } finally {
+      setAppointmentActionId(null);
+    }
   }
 
   return (
@@ -484,6 +516,92 @@ export default function Dashboard() {
 
         <section class="mt-10">
           <div class="mb-6 flex items-center gap-3">
+            <CalendarClock size={20} class="text-amber" />
+            <div>
+              <h2 class="font-display text-2xl font-semibold">收到的预约</h2>
+              <p class="mt-1 text-sm text-muted">客户付款后确认预约，并推进拍摄与交付状态</p>
+            </div>
+          </div>
+
+          <Show when={appointmentMsg()}>
+            <div class="mb-4 rounded-lg border border-teal/30 bg-teal/10 px-4 py-3 text-sm text-teal" role="status">
+              {appointmentMsg()}
+            </div>
+          </Show>
+          <Show when={appointmentError()}>
+            <div class="mb-4 rounded-lg border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral" role="alert">
+              {appointmentError()}
+            </div>
+          </Show>
+
+          <Show when={creatorAppointments.isPending}>
+            <div class="grid min-h-32 place-items-center rounded-lg border border-dashed border-line text-sm text-muted">
+              正在加载收到的预约...
+            </div>
+          </Show>
+          <Show when={creatorAppointments.isError}>
+            <div class="grid min-h-32 place-items-center rounded-lg border border-dashed border-line px-5 text-center text-sm text-muted">
+              {creatorAppointmentsUnavailable()
+                ? "成为创作者并完善资料后，这里会显示客户提交的预约。"
+                : "暂时无法加载收到的预约，请稍后重试。"}
+            </div>
+          </Show>
+          <Show when={creatorAppointments.data}>
+            <Show
+              when={(creatorAppointments.data?.length ?? 0) > 0}
+              fallback={
+                <div class="grid min-h-32 place-items-center rounded-lg border border-dashed border-line text-sm text-muted">
+                  暂时还没有客户预约
+                </div>
+              }
+            >
+              <div class="space-y-3">
+                <For each={creatorAppointments.data ?? []}>
+                  {(item) => (
+                    <div class="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div class="flex flex-wrap items-center gap-3">
+                          <span class="font-medium">{new Date(item.start_time).toLocaleString("zh-CN")}</span>
+                          <StatusBadge status={item.status} />
+                        </div>
+                        <p class="mt-1 text-sm text-muted">
+                          服务 #{item.service_id} · ¥{item.total_price}
+                          {item.location ? ` · ${item.location}` : ""}
+                        </p>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <Show when={item.status === "pending"}>
+                          <span class="text-xs text-muted">等待客户支付</span>
+                        </Show>
+                        <Show when={item.status === "confirmed"}>
+                          <Button
+                            size="sm"
+                            onClick={() => advanceAppointment(item.id, "ongoing")}
+                            disabled={appointmentActionId() === item.id}
+                          >
+                            {appointmentActionId() === item.id ? "处理中" : "开始"}
+                          </Button>
+                        </Show>
+                        <Show when={item.status === "ongoing"}>
+                          <Button
+                            size="sm"
+                            onClick={() => advanceAppointment(item.id, "completed")}
+                            disabled={appointmentActionId() === item.id}
+                          >
+                            {appointmentActionId() === item.id ? "处理中" : "完成"}
+                          </Button>
+                        </Show>
+                      </div>
+                    </div>
+                  )}
+                </For>
+              </div>
+            </Show>
+          </Show>
+        </section>
+
+        <section class="mt-10">
+          <div class="mb-6 flex items-center gap-3">
             <CalendarClock size={20} class="text-primary" />
             <h2 class="font-display text-2xl font-semibold">我的预约</h2>
           </div>
@@ -527,7 +645,7 @@ export default function Dashboard() {
 
 function StatusBadge(props: { status: string }) {
   const labels: Record<string, string> = {
-    pending: "待确认",
+    pending: "待支付",
     confirmed: "已确认",
     ongoing: "进行中",
     completed: "已完成",

@@ -68,6 +68,12 @@
       "status": "done",
       "started": "2026-09-17 07:16",
       "finished": "2026-09-17 07:16"
+    },
+    {
+      "name": "Payment, settlement, reviews, and full-flow E2E",
+      "status": "done",
+      "started": "2026-09-27 15:45",
+      "finished": "2026-09-27 15:45"
     }
   ]
 }

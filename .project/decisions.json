@@ -77,6 +77,12 @@
       "reason": "admin/customer/creators each get a loginable account and a dedicated surface; login routes by role",
       "impact": "Passwords: admin/admin123, customer/customer123, creators/creator123",
       "date": "2026-09-17 07:16"
+    },
+    {
+      "title": "Payment escrow + 10% commission settlement",
+      "reason": "Balance payment moves appointment to confirmed; creator completion triggers settlement with platform 10% commission",
+      "impact": "Escrow recorded in payments table; incomes verified in full-flow E2E",
+      "date": "2026-09-27 15:45"
     }
   ]
 }

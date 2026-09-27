@@ -19,4 +19,5 @@
 - Creator profile + Service CRUD + appointments
 - Seed realistic creators/services/works with real photos
 - Three role interfaces: admin, creator, customer
+- Payment, settlement, reviews, and full-flow E2E
 

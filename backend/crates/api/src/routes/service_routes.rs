@@ -36,10 +36,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/services", get(list_services).post(create_service))
         .route("/service-types", get(list_types))
-        .route(
-            "/services/{id}",
-            get(get_service).patch(set_active),
-        )
+        .route("/services/{id}", get(get_service).patch(set_active))
 }
 
 async fn list_types(
@@ -53,7 +50,10 @@ async fn list_services(
     State(state): State<AppState>,
     Query(query): Query<ListServicesQuery>,
 ) -> Result<Json<ApiResponse<Vec<ServiceDto>>>, AppError> {
-    let services = state.services.list_active(query.limit.unwrap_or(60)).await?;
+    let services = state
+        .services
+        .list_active(query.limit.unwrap_or(60))
+        .await?;
     Ok(Json(ApiResponse::success(services)))
 }
 
@@ -106,6 +106,9 @@ async fn set_active(
         .by_user_id(claims.sub)
         .await?
         .ok_or_else(|| AppError::Forbidden("complete creator profile first".into()))?;
-    let service = state.services.set_active(creator.id, id, body.is_active).await?;
+    let service = state
+        .services
+        .set_active(creator.id, id, body.is_active)
+        .await?;
     Ok(Json(ApiResponse::success(service)))
 }

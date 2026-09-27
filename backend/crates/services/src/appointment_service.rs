@@ -1,8 +1,6 @@
 use chrono::{DateTime, Utc};
 use common::AppError;
-use db::entities::{
-    appointment as appt_entity, service as service_entity, AppointmentModel,
-};
+use db::entities::{appointment as appt_entity, service as service_entity, AppointmentModel};
 use rust_decimal::Decimal;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
@@ -69,10 +67,7 @@ impl AppointmentService {
                     .eq(service.creator_id)
                     .and(appt_entity::Column::StartTime.lt(input.end_time))
                     .and(appt_entity::Column::EndTime.gt(input.start_time))
-                    .and(
-                        appt_entity::Column::Status
-                            .is_not_in(["cancelled", "refunded"]),
-                    ),
+                    .and(appt_entity::Column::Status.is_not_in(["cancelled", "refunded"])),
             )
             .one(&self.db)
             .await
@@ -101,8 +96,7 @@ impl AppointmentService {
         .await
         .map_err(AppError::from_anyhow)?;
 
-        self.bump_counts(service.id, service.creator_id, service.price)
-            .await?;
+        self.bump_counts(service.id, service.creator_id).await?;
 
         Ok(to_dto(model))
     }
@@ -143,7 +137,9 @@ impl AppointmentService {
         let is_client = model.user_id == actor_user_id;
         let is_creator = actor_creator_id == Some(model.creator_id);
         if !is_client && !is_creator {
-            return Err(AppError::Forbidden("not allowed to modify this appointment".into()));
+            return Err(AppError::Forbidden(
+                "not allowed to modify this appointment".into(),
+            ));
         }
 
         let current = status_from_str(&model.status)?;
@@ -157,7 +153,9 @@ impl AppointmentService {
         // Clients may only cancel; creators drive the rest of the flow.
         let client_only_targets = ["cancelled"];
         if is_client && !is_creator && !client_only_targets.contains(&target.as_str()) {
-            return Err(AppError::Forbidden("only the creator can perform this action".into()));
+            return Err(AppError::Forbidden(
+                "only the creator can perform this action".into(),
+            ));
         }
 
         let mut active = model.into_active_model();
@@ -170,12 +168,7 @@ impl AppointmentService {
         Ok(to_dto(updated))
     }
 
-    async fn bump_counts(
-        &self,
-        service_id: i32,
-        creator_id: i32,
-        price: Decimal,
-    ) -> Result<(), AppError> {
+    async fn bump_counts(&self, service_id: i32, creator_id: i32) -> Result<(), AppError> {
         if let Some(service) = service_entity::Entity::find_by_id(service_id)
             .one(&self.db)
             .await
@@ -184,7 +177,10 @@ impl AppointmentService {
             let count = service.appointments_count;
             let mut active = service.into_active_model();
             active.appointments_count = Set(count + 1);
-            active.update(&self.db).await.map_err(AppError::from_anyhow)?;
+            active
+                .update(&self.db)
+                .await
+                .map_err(AppError::from_anyhow)?;
         }
         if let Some(profile) = db::entities::creator_profile::Entity::find_by_id(creator_id)
             .one(&self.db)
@@ -192,11 +188,12 @@ impl AppointmentService {
             .map_err(AppError::from_anyhow)?
         {
             let appointments = profile.total_appointments;
-            let income = profile.total_income;
             let mut active = profile.into_active_model();
             active.total_appointments = Set(appointments + 1);
-            active.total_income = Set(income + price);
-            active.update(&self.db).await.map_err(AppError::from_anyhow)?;
+            active
+                .update(&self.db)
+                .await
+                .map_err(AppError::from_anyhow)?;
         }
         Ok(())
     }
@@ -320,6 +317,13 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(created.status, "pending");
+        let profile = db::entities::creator_profile::Entity::find_by_id(creator.id)
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(profile.total_appointments, 1);
+        assert_eq!(profile.total_income, Decimal::ZERO);
 
         let conflict = appointments
             .create(

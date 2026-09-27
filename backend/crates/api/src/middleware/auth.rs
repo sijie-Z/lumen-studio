@@ -1,8 +1,5 @@
 use crate::state::AppState;
-use axum::{
-    extract::FromRequestParts,
-    http::request::Parts,
-};
+use axum::{extract::FromRequestParts, http::request::Parts};
 use services::auth_service::Claims;
 
 pub struct AuthUser(pub Claims);

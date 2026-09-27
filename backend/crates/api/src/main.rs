@@ -1,6 +1,6 @@
+mod middleware;
 mod routes;
 mod state;
-mod middleware;
 
 use anyhow::Context;
 use axum::Router;
@@ -50,6 +50,8 @@ async fn main() -> anyhow::Result<()> {
         creators: services::creator_service::CreatorService::new(db.clone()),
         services: services_catalog,
         appointments: services::appointment_service::AppointmentService::new(db.clone()),
+        payments: services::payment_service::PaymentService::new(db.clone()),
+        reviews: services::review_service::ReviewService::new(db.clone()),
         admin: services::admin_service::AdminService::new(db),
     };
 
@@ -79,6 +81,8 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn connect_database(url: &str) -> anyhow::Result<DatabaseConnection> {
-    let db = db::connect(url).await.context("failed to connect to database")?;
+    let db = db::connect(url)
+        .await
+        .context("failed to connect to database")?;
     Ok(db)
 }

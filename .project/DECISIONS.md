@@ -104,3 +104,11 @@
 
 *2026-09-17 07:16*
 
+## ADR-014: Payment escrow + 10% commission settlement
+
+**Reason**: Balance payment moves appointment to confirmed; creator completion triggers settlement with platform 10% commission
+
+**Impact**: Escrow recorded in payments table; incomes verified in full-flow E2E
+
+*2026-09-27 15:45*
+

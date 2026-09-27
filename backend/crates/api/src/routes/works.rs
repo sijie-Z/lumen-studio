@@ -23,8 +23,7 @@ pub struct CreateWorkInput {
 }
 
 pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/works", get(list_works).post(create_work))
+    Router::new().route("/works", get(list_works).post(create_work))
 }
 
 async fn list_works(
@@ -42,7 +41,13 @@ async fn create_work(
 ) -> Result<Json<ApiResponse<WorkDto>>, AppError> {
     let work = state
         .works
-        .create(claims.sub, input.image_url, input.title, input.description, input.category)
+        .create(
+            claims.sub,
+            input.image_url,
+            input.title,
+            input.description,
+            input.category,
+        )
         .await?;
     Ok(Json(ApiResponse::success(work)))
 }

@@ -16,7 +16,11 @@ struct TransitionBody {
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        .route("/appointments", get(list_appointments).post(create_appointment))
+        .route(
+            "/appointments",
+            get(list_appointments).post(create_appointment),
+        )
+        .route("/appointments/creator", get(list_creator_appointments))
         .route("/appointments/{id}", patch(transition))
 }
 
@@ -25,6 +29,19 @@ async fn list_appointments(
     AuthUser(claims): AuthUser,
 ) -> Result<Json<ApiResponse<Vec<AppointmentDto>>>, AppError> {
     let appointments = state.appointments.list_for_user(claims.sub).await?;
+    Ok(Json(ApiResponse::success(appointments)))
+}
+
+async fn list_creator_appointments(
+    State(state): State<AppState>,
+    AuthUser(claims): AuthUser,
+) -> Result<Json<ApiResponse<Vec<AppointmentDto>>>, AppError> {
+    let creator = state
+        .creators
+        .by_user_id(claims.sub)
+        .await?
+        .ok_or_else(|| AppError::Forbidden("complete creator profile first".into()))?;
+    let appointments = state.appointments.list_for_creator(creator.id).await?;
     Ok(Json(ApiResponse::success(appointments)))
 }
 
@@ -48,9 +65,13 @@ async fn transition(
         .by_user_id(claims.sub)
         .await?
         .map(|profile| profile.id);
+    let target = body.status;
     let appointment = state
         .appointments
-        .transition(claims.sub, creator_id, id, body.status)
+        .transition(claims.sub, creator_id, id, target.clone())
         .await?;
+    if target == "completed" {
+        state.payments.settle(id).await?;
+    }
     Ok(Json(ApiResponse::success(appointment)))
 }

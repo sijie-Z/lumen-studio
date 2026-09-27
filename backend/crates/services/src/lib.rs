@@ -4,5 +4,7 @@ pub mod work_service;
 pub mod creator_service;
 pub mod service_catalog;
 pub mod appointment_service;
+pub mod payment_service;
+pub mod review_service;
 pub mod seed;
 pub mod admin_service;

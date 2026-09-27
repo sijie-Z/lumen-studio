@@ -11,22 +11,24 @@
 - [x] Creator profile + Service CRUD + appointments
 - [x] Seed realistic creators/services/works with real photos
 - [x] Three role interfaces: admin, creator, customer
+- [x] Payment, settlement, reviews, and full-flow E2E
 
 ## Recent Changes
+- web/scripts/e2e_flow.py
+- web/src/pages/dashboard.tsx
+- web/src/lib/reviews-api.ts
+- web/src/lib/payment-api.ts
+- backend/crates/api/src/routes/appointments.rs
+- backend/crates/api/src/routes/reviews.rs
+- backend/crates/api/src/routes/payments.rs
+- backend/crates/services/src/review_service.rs
+- backend/crates/services/src/payment_service.rs
 - web/src/lib/admin-api.ts
-- web/src/pages/account.tsx
-- web/src/pages/admin.tsx
-- backend/crates/api/src/routes/admin.rs
-- backend/crates/services/src/admin_service.rs
-- web/src/pages/home.tsx
-- backend/crates/services/src/work_service.rs
-- backend/crates/db/src/migrations/m20260916_000004_add_work_category.rs
-- backend/crates/services/src/seed.rs
-- web/src/pages/creator-profile.tsx
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
 - smoke test still writes to main photography.db
+- Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents
 
 ## Next Step
-- Payment module + creator appointment confirm + reviews
+- Isolate smoke/e2e tests to a test DB; reviews shown on creator profile

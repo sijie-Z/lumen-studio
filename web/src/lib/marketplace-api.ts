@@ -125,6 +125,10 @@ export async function listAppointments() {
   return request<Appointment[]>("/appointments", { auth: true });
 }
 
+export async function listCreatorAppointments() {
+  return request<Appointment[]>("/appointments/creator", { auth: true });
+}
+
 export async function createAppointment(input: CreateAppointmentInput) {
   return request<Appointment>("/appointments", {
     method: "POST",

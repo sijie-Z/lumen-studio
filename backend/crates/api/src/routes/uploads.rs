@@ -1,10 +1,6 @@
 use crate::middleware::auth::AuthUser;
 use crate::state::AppState;
-use axum::{
-    extract::Multipart,
-    routing::post,
-    Json, Router,
-};
+use axum::{extract::Multipart, routing::post, Json, Router};
 use common::{ApiResponse, AppError};
 use serde::Serialize;
 use tokio::fs;
@@ -51,11 +47,7 @@ async fn upload_image(
                 content_type = ct.to_string();
             }
 
-            while let Some(chunk) = field
-                .chunk()
-                .await
-                .map_err(AppError::from_anyhow)?
-            {
+            while let Some(chunk) = field.chunk().await.map_err(AppError::from_anyhow)? {
                 bytes.extend_from_slice(&chunk);
                 if bytes.len() > MAX_UPLOAD_BYTES {
                     return Err(AppError::BadRequest("image exceeds 15MB limit".into()));
