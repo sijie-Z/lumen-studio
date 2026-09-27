@@ -20,12 +20,19 @@
 - [x] Frontend route groups, shared AppShell, and unified route guards
 - [x] Core booking-to-payment handoff and four-state UI feedback
 - [x] Browser regression for guarded layouts, full transaction, notifications, and cancellation refunds
+- [x] Polish creator, work detail, and home pages
 
 ## Recent Changes
+- web/src/pages/home.tsx
+- web/src/pages/work-detail.tsx
+- web/src/pages/creator-profile.tsx
 - web/scripts/regression_e2e.py
 - web/src/pages/account.tsx
 - web/index.html
 - web/public/favicon.svg
+- web/src/components/layout/app-shell.tsx
+- web/src/main.tsx
+- web/src/components/ui/state.tsx
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
@@ -35,4 +42,4 @@
 - Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment
 
 ## Next Step
-- Continue product-level coverage for pagination, search/filtering, creator profile onboarding, and post-refund notification semantics
+- Run browser-level visual checks for creator profile, work detail, home, and then extend search/filter coverage

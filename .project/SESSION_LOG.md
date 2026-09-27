@@ -120,3 +120,10 @@
 - **Risks**: Chrome channel is required on this machine because bundled Playwright Chromium crashes in the current Windows environment.
 - **Next**: Extend browser coverage to pagination, search/filtering, creator onboarding, and refund notification semantics
 
+### [2026-09-27 21:43] main — Polish creator, work detail, and home pages
+
+- **Task**: Polish creator, work detail, and home pages
+- **Branch**: main
+- **Summary**: Polished creator profile with real work filtering, tabs, identity header and four-state UI; rebuilt work detail with real creator routing, removed fake favorite/contact actions and added related works; reworked home hierarchy, query states and responsive spacing. pnpm build passed with 1846 modules; only web pages were changed.
+- **Next**: Run browser-level visual checks for creator profile, work detail, home, and then extend search/filter coverage
+

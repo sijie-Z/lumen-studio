@@ -95,6 +95,12 @@
       "reason": "Notification delivery must not roll back an already successful appointment, payment, or withdrawal operation",
       "impact": "Business routes call NotificationService after state changes; insert failures are logged without changing the primary API result",
       "date": "2026-09-27 16:40"
+    },
+    {
+      "title": "Grouped frontend layouts with route-level guards",
+      "reason": "Account, creator, and admin pages duplicated headers and performed request-failure-based redirects; public pages also carried their own navigation shell",
+      "impact": "web routes are grouped into public/customer/creator/admin layouts; AppShell owns navigation, notification, user menu, and mobile behavior; RequireAuth handles session hydration and RequireRole handles admin authorization before page render; creator onboarding remains available to authenticated customers until capabilities become a first-class role model",
+      "date": "2026-09-27 20:23"
     }
   ]
 }

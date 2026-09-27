@@ -28,4 +28,5 @@
 - Unified loading/error/empty/success states on core pages
 - Booking success now links directly to the highlighted order payment action
 - Full browser regression for guarded layouts and refund flow
+- Polish creator, work detail, and home pages
 

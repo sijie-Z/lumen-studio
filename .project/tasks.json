@@ -7,22 +7,6 @@
       "finished": "2026-09-15 22:38"
     },
     {
-      "name": "Creator profile + Service CRUD",
-      "status": "todo"
-    },
-    {
-      "name": "Appointment + Payment module",
-      "status": "todo"
-    },
-    {
-      "name": "AI assistant chat UI",
-      "status": "todo"
-    },
-    {
-      "name": "SolidJS frontend skeleton",
-      "status": "todo"
-    },
-    {
       "name": "SolidJS web UI: login/register + dashboard + image upload",
       "status": "done",
       "finished": "2026-09-15 23:30"
@@ -104,6 +88,44 @@
       "status": "done",
       "started": "2026-09-27 16:48",
       "finished": "2026-09-27 16:48"
+    },
+    {
+      "name": "Introduce first-class customer/creator capabilities without blocking creator onboarding",
+      "status": "todo"
+    },
+    {
+      "name": "Paginate list APIs and connect the existing PaginatedResponse contract",
+      "status": "todo"
+    },
+    {
+      "name": "Add browser coverage for pagination, search, filters, and creator onboarding",
+      "status": "todo"
+    },
+    {
+      "name": "Frontend grouped layouts + shared AppShell + route guards",
+      "status": "done",
+      "finished": "2026-09-27 20:23"
+    },
+    {
+      "name": "Unified loading/error/empty/success states on core pages",
+      "status": "done",
+      "finished": "2026-09-27 20:23"
+    },
+    {
+      "name": "Booking success now links directly to the highlighted order payment action",
+      "status": "done",
+      "finished": "2026-09-27 20:23"
+    },
+    {
+      "name": "Full browser regression for guarded layouts and refund flow",
+      "status": "done",
+      "finished": "2026-09-27 20:49"
+    },
+    {
+      "name": "Polish creator, work detail, and home pages",
+      "status": "done",
+      "started": "2026-09-27 21:43",
+      "finished": "2026-09-27 21:43"
     }
   ]
 }

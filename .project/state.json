@@ -1,22 +1,24 @@
 {
   "recent_files": [
-    "web/src/pages/admin.tsx",
-    "web/scripts/onboarding_notification_e2e.py",
-    "web/src/components/layout/site-header.tsx",
-    "web/src/lib/notification-api.ts",
-    "backend/crates/db/src/migrations/m20260928_000007_create_notifications.rs",
-    "backend/crates/api/src/routes/notifications.rs",
-    "backend/crates/services/src/notification_service.rs",
-    "web/src/pages/service-detail.tsx",
     "web/src/pages/home.tsx",
-    "web/src/pages/dashboard.tsx"
+    "web/src/pages/work-detail.tsx",
+    "web/src/pages/creator-profile.tsx",
+    "web/scripts/regression_e2e.py",
+    "web/src/pages/account.tsx",
+    "web/index.html",
+    "web/public/favicon.svg",
+    "web/src/components/layout/app-shell.tsx",
+    "web/src/main.tsx",
+    "web/src/components/ui/state.tsx"
   ],
   "known_issues": [
     "Rust MSVC linker missing — need VS Build Tools or GNU toolchain",
     "smoke test still writes to main photography.db",
-    "Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents"
+    "Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents",
+    "Creator identity is still profile-based for onboarding; customer and creator capabilities are not yet a first-class role model",
+    "Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment"
   ],
-  "next_step": "Inspect onboarding-notify screenshots and consider WebSocket real-time notification delivery",
+  "next_step": "Run browser-level visual checks for creator profile, work detail, home, and then extend search/filter coverage",
   "branch": "main",
   "active_work": [
     {
@@ -73,6 +75,22 @@
     },
     {
       "name": "Onboarding and notification browser E2E",
+      "status": "done"
+    },
+    {
+      "name": "Frontend route groups, shared AppShell, and unified route guards",
+      "status": "done"
+    },
+    {
+      "name": "Core booking-to-payment handoff and four-state UI feedback",
+      "status": "done"
+    },
+    {
+      "name": "Browser regression for guarded layouts, full transaction, notifications, and cancellation refunds",
+      "status": "done"
+    },
+    {
+      "name": "Polish creator, work detail, and home pages",
       "status": "done"
     }
   ]
