@@ -15,6 +15,8 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import { EmptyState } from "../components/onboarding/empty-state";
+import { StepGuide, type GuideStep } from "../components/onboarding/step-guide";
 import { fetchMe, isAuthenticated } from "../lib/auth-api";
 import { listAppointments, transitionAppointment } from "../lib/marketplace-api";
 import { payAppointment, recharge } from "../lib/payment-api";
@@ -69,6 +71,30 @@ export default function Account() {
   const [reviewedIds, setReviewedIds] = createSignal<number[]>([]);
   const [actionMessage, setActionMessage] = createSignal("");
   const [actionError, setActionError] = createSignal("");
+  const hasAppointments = () => (appointments.data?.length ?? 0) > 0;
+  const customerSteps = (): GuideStep[] => [
+    {
+      title: "浏览服务",
+      description: "从服务列表选择拍摄类型、价格和创作者。",
+      done: hasAppointments()
+    },
+    {
+      title: "提交并支付预约",
+      description: "提交需求后，在客户中心完成余额支付。",
+      done:
+        appointments.data?.some((item) =>
+          ["confirmed", "ongoing", "completed"].includes(item.status)
+        ) ?? false
+    },
+    {
+      title: "完成后评价",
+      description: "服务完成后留下评价，帮助其他客户做选择。",
+      done:
+        appointments.data?.some(
+          (item) => item.status === "completed" && reviewedIds().includes(item.id)
+        ) ?? false
+    }
+  ];
 
   createEffect(() => {
     if (!isAuthenticated()) navigate("/login");
@@ -204,6 +230,16 @@ export default function Account() {
           </A>
         </div>
 
+        <Show when={hasAppointments()}>
+          <StepGuide
+            id="customer-onboarding"
+            class="mt-6"
+            title="完成一次预约"
+            description="从选服务到评价，按顺序完成即可。"
+            steps={customerSteps()}
+          />
+        </Show>
+
         <Card class="mt-6 border-primary/30 bg-primary/5">
           <CardContent class="flex flex-col gap-4 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-center gap-3">
@@ -267,11 +303,16 @@ export default function Account() {
         <section class="mt-10">
           <h2 class="font-display text-2xl font-semibold">我的预约</h2>
           <Show
-            when={(appointments.data?.length ?? 0) > 0}
+            when={hasAppointments()}
             fallback={
-              <div class="mt-5 grid min-h-40 place-items-center rounded-lg border border-dashed border-line text-muted">
-                还没有预约，去服务列表挑选创作者吧
-              </div>
+              <EmptyState
+                class="mt-5"
+                icon={<Compass size={20} />}
+                title="还没有预约"
+                description="先浏览服务，选择适合你的拍摄类型和创作者。"
+                ctaLabel="浏览服务"
+                href="/services"
+              />
             }
           >
             <div class="mt-5 space-y-3">

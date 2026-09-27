@@ -17,6 +17,8 @@ import { listWorks } from "../lib/works-api";
 import SiteFooter from "../components/layout/site-footer";
 import SiteHeader from "../components/layout/site-header";
 import Assistant from "../components/ai/assistant";
+import { StepGuide, type GuideStep } from "../components/onboarding/step-guide";
+import { isAuthenticated } from "../lib/auth-api";
 
 const categories = [
   { icon: Camera, title: "人像摄影", tint: "bg-amber/15 text-amber" },
@@ -39,6 +41,23 @@ export default function Home() {
       href: `/works/${item.id}`
     }));
   });
+  const visitorSteps = (): GuideStep[] => [
+    {
+      title: "注册或登录",
+      description: "使用一个账号管理预约、支付和评价。",
+      done: isAuthenticated()
+    },
+    {
+      title: "选择服务或创作者",
+      description: "从作品风格、价格和拍摄地点找到合适的人。",
+      done: false
+    },
+    {
+      title: "提交预约并支付",
+      description: "在服务详情选择时间，再到客户中心完成支付。",
+      done: false
+    }
+  ];
 
   return (
     <div class="min-h-screen bg-ink text-paper">
@@ -84,6 +103,17 @@ export default function Home() {
                 </A>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section class="border-t border-white/8 px-5 py-6 md:px-8">
+          <div class="mx-auto max-w-7xl">
+            <StepGuide
+              id="home-onboarding"
+              title="新访客从这里开始"
+              description="三步完成第一次创意服务预约。"
+              steps={visitorSteps()}
+            />
           </div>
         </section>
 

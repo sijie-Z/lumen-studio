@@ -14,18 +14,19 @@
 - [x] Payment, settlement, reviews, and full-flow E2E
 - [x] Creator withdrawal application and admin review
 - [x] Withdrawal browser E2E and release commit
+- [x] User onboarding system
 
 ## Recent Changes
+- web/src/pages/service-detail.tsx
+- web/src/pages/home.tsx
+- web/src/pages/dashboard.tsx
+- web/src/pages/account.tsx
+- web/src/components/onboarding/empty-state.tsx
+- web/src/components/onboarding/step-guide.tsx
 - web/scripts/test_runtime.py
 - web/scripts/withdrawal_e2e.py
 - backend/crates/api/src/routes/mod.rs
 - backend/crates/services/tests/withdrawal_flow.rs
-- web/src/pages/admin.tsx
-- backend/crates/db/src/migrations/m20260928_000006_create_withdrawals.rs
-- backend/crates/api/src/routes/withdrawals.rs
-- backend/crates/services/src/withdrawal_service.rs
-- web/scripts/e2e_flow.py
-- web/src/pages/dashboard.tsx
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
@@ -33,4 +34,4 @@
 - Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents
 
 ## Next Step
-- Commit verified withdrawal E2E, creator review display, and isolated test runtime changes
+- Run browser-level onboarding checks for customer, creator, and admin roles

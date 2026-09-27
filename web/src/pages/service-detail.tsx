@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Input } from "../components/ui/input";
 import { Skeleton } from "../components/ui/skeleton";
 import SiteHeader from "../components/layout/site-header";
+import { StepGuide, type GuideStep } from "../components/onboarding/step-guide";
 import { createAppointment, getService, type Service } from "../lib/marketplace-api";
 import { isAuthenticated } from "../lib/auth-api";
 
@@ -25,6 +26,23 @@ export default function ServiceDetail() {
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
   const [success, setSuccess] = createSignal(false);
+  const bookingSteps = (): GuideStep[] => [
+    {
+      title: "选择预约时间",
+      description: "确认开始时间、拍摄地点和具体需求。",
+      done: Boolean(startLocal())
+    },
+    {
+      title: "提交预约",
+      description: "提交后预约进入待支付状态。",
+      done: success()
+    },
+    {
+      title: "到客户中心支付",
+      description: "完成支付后，创作者会收到预约并确认档期。",
+      done: false
+    }
+  ];
 
   async function submit() {
     if (!isAuthenticated()) {
@@ -112,7 +130,14 @@ export default function ServiceDetail() {
               </div>
             </div>
 
-            <Card class="h-fit">
+            <div class="space-y-4">
+              <StepGuide
+                id="service-booking"
+                title="预约流程"
+                description="按顺序完成时间和支付，避免预约中断。"
+                steps={bookingSteps()}
+              />
+              <Card class="h-fit">
               <CardHeader>
                 <CardTitle class="flex items-center gap-2">
                   <CalendarDays size={18} class="text-primary" />
@@ -165,7 +190,8 @@ export default function ServiceDetail() {
                   {submitting() ? "提交中" : "立即预约"}
                 </Button>
               </CardContent>
-            </Card>
+              </Card>
+            </div>
           </div>
         </Show>
       </main>

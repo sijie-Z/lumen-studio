@@ -18,6 +18,7 @@ import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { StepGuide, type GuideStep } from "../components/onboarding/step-guide";
 import { Skeleton } from "../components/ui/skeleton";
 import { getStats, listUsers } from "../lib/admin-api";
 import { isAuthenticated } from "../lib/auth-api";
@@ -64,6 +65,24 @@ export default function Admin() {
 
   const pendingWithdrawals = () =>
     (withdrawals.data ?? []).filter((item) => item.status === "pending");
+
+  const adminSteps = (): GuideStep[] => [
+    {
+      title: "查看平台数据",
+      description: "关注用户、创作者、服务、预约和成交额的变化。",
+      done: Boolean(stats.data)
+    },
+    {
+      title: "管理用户与角色",
+      description: "在用户列表中核对账号状态和角色信息。",
+      done: (users.data?.length ?? 0) > 0
+    },
+    {
+      title: "处理提现审核",
+      description: "及时处理待审核申请，保证创作者资金流转。",
+      done: Boolean(withdrawals.data) && pendingWithdrawals().length === 0
+    }
+  ];
 
   function updateWithdrawalNote(id: number, note: string) {
     setWithdrawalNotes({ ...withdrawalNotes(), [id]: note });
@@ -112,7 +131,18 @@ export default function Admin() {
       </header>
 
       <main class="mx-auto max-w-7xl px-5 py-8 md:px-8 md:py-10">
-        <h1 class="font-display text-3xl font-semibold">平台概览</h1>
+        <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <h1 class="font-display text-3xl font-semibold">平台概览</h1>
+          <p class="text-sm text-muted">平台数据、用户管理和资金审核集中在这里。</p>
+        </div>
+
+        <StepGuide
+          id="admin-onboarding"
+          class="mt-6"
+          title="管理后台怎么用"
+          description="先看数据，再处理用户和提现，日常按这个顺序检查即可。"
+          steps={adminSteps()}
+        />
 
         <Show when={stats.isLoading}>
           <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

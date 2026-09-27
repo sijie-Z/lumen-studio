@@ -79,3 +79,10 @@
 - **Summary**: Added isolated browser E2E for withdrawal apply/approve/reject with SHA-256 main DB isolation checks. All four verification commands passed. Ready to commit .project, backend/Cargo.lock, backend/crates, and web.
 - **Next**: Commit verified withdrawal E2E, creator review display, and isolated test runtime changes
 
+### [2026-09-27 16:39] main — User onboarding system
+
+- **Task**: User onboarding system
+- **Branch**: main
+- **Summary**: Implemented reusable StepGuide and EmptyState, then added role-based onboarding to customer, creator, admin, home, and service detail pages. pnpm build passed.
+- **Next**: Run browser-level onboarding checks for customer, creator, and admin roles
+

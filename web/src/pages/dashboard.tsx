@@ -23,6 +23,7 @@ import {
   listAppointments,
   listCreatorAppointments,
   listCreators,
+  listServices,
   listServiceTypes,
   transitionAppointment,
   upsertProfile
@@ -33,6 +34,8 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import { EmptyState } from "../components/onboarding/empty-state";
+import { StepGuide, type GuideStep } from "../components/onboarding/step-guide";
 import { applyWithdrawal, listMyWithdrawals } from "../lib/withdrawal-api";
 
 export default function Dashboard() {
@@ -77,6 +80,7 @@ export default function Dashboard() {
   }));
   const creators = createQuery(() => ({ queryKey: ["creators"] as const, queryFn: listCreators }));
   const serviceTypes = createQuery(() => ({ queryKey: ["service-types"] as const, queryFn: listServiceTypes }));
+  const services = createQuery(() => ({ queryKey: ["services"] as const, queryFn: listServices }));
   const appointments = createQuery(() => ({
     queryKey: ["appointments"] as const,
     queryFn: listAppointments,
@@ -96,6 +100,35 @@ export default function Dashboard() {
   const myProfile = createMemo(() =>
     creators.data?.find((item) => item.user_id === me.data?.id)
   );
+  const myWorks = createMemo(() =>
+    (works.data ?? []).filter((item) => item.user_id === me.data?.id)
+  );
+  const myServices = createMemo(() =>
+    (services.data ?? []).filter((item) => item.creator_id === myProfile()?.id)
+  );
+  const creatorSteps = (): GuideStep[] => [
+    {
+      title: "完善创作者资料",
+      description: "填写简介和个人主页，让客户快速了解你的风格。",
+      done: Boolean(myProfile())
+    },
+    {
+      title: "上传第一组作品",
+      description: "用真实作品建立信任，作品会展示在主页和探索页。",
+      done: myWorks().length > 0
+    },
+    {
+      title: "发布服务",
+      description: "设置服务类型、价格和拍摄地点，开始接受预约。",
+      done: myServices().length > 0
+    },
+    {
+      title: "完成首单并提现",
+      description: "客户付款后确认履约，服务完成后即可申请提现。",
+      done:
+        creatorAppointments.data?.some((item) => item.status === "completed") ?? false
+    }
+  ];
   const creatorAppointmentsUnavailable = () => {
     const error = creatorAppointments.error;
     return error instanceof ApiError && [403, 404].includes(error.status);
@@ -109,6 +142,10 @@ export default function Dashboard() {
   createEffect(() => {
     if (me.data) auth.setCurrentUser(me.data);
   });
+
+  function scrollToId(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   function chooseFile(event: Event) {
     const input = event.currentTarget as HTMLInputElement;
@@ -309,7 +346,7 @@ export default function Dashboard() {
             </div>
             <div class="rounded-lg border border-line bg-surface px-4 py-3">
               <p class="text-xs text-muted">已上传作品</p>
-              <p class="mt-1 text-xl font-medium text-amber">{works.data?.length ?? 0}</p>
+              <p class="mt-1 text-xl font-medium text-amber">{myWorks().length}</p>
             </div>
             <div class="rounded-lg border border-line bg-surface px-4 py-3">
               <p class="text-xs text-muted">本月预约</p>
@@ -317,6 +354,27 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        <Show when={!creators.isPending && !myProfile()}>
+          <EmptyState
+            class="mt-8"
+            icon={<User size={20} />}
+            title="先完善创作者资料"
+            description="创建资料后才能发布服务、接收预约和管理作品。"
+            ctaLabel="填写创作者资料"
+            onClick={() => scrollToId("creator-profile")}
+          />
+        </Show>
+
+        <Show when={myProfile()}>
+          <StepGuide
+            id="creator-onboarding"
+            class="mt-8"
+            title="完成创作者起步流程"
+            description="按顺序完成资料、作品、服务和首单。"
+            steps={creatorSteps()}
+          />
+        </Show>
 
         <div class="mt-10 grid gap-6 lg:grid-cols-[360px_1fr]">
           <aside class="space-y-6">
@@ -359,7 +417,7 @@ export default function Dashboard() {
             </section>
           </aside>
 
-          <section class="rounded-lg border border-line bg-surface p-5 md:p-6">
+          <section id="upload-work" class="rounded-lg border border-line bg-surface p-5 md:p-6">
             <div class="flex items-center justify-between gap-4">
               <div>
                 <h2 class="text-base font-medium">作品上传</h2>
@@ -427,19 +485,23 @@ export default function Dashboard() {
               <h2 class="font-display text-2xl font-semibold">我的作品库</h2>
               <p class="mt-1 text-sm text-muted">上传的图片会出现在这里</p>
             </div>
-            <span class="text-sm text-muted">{works.data?.length ?? 0} 张</span>
+            <span class="text-sm text-muted">{myWorks().length} 张</span>
           </div>
 
           <Show
-            when={(works.data?.length ?? 0) > 0}
+            when={myWorks().length > 0}
             fallback={
-              <div class="grid min-h-48 place-items-center rounded-lg border border-dashed border-line bg-surface/40 text-sm text-muted">
-                还没有上传任何作品
-              </div>
+              <EmptyState
+                icon={<ImageIcon size={20} />}
+                title="还没有上传作品"
+                description="先上传第一组作品，客户才能看到你的风格。"
+                ctaLabel="上传作品"
+                onClick={() => scrollToId("upload-work")}
+              />
             }
           >
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <For each={works.data ?? []}>
+              <For each={myWorks()}>
                 {(item) => (
                   <div class="group overflow-hidden rounded-lg border border-line bg-surface">
                     <div class="aspect-square overflow-hidden">
@@ -463,8 +525,19 @@ export default function Dashboard() {
           </Show>
         </section>
 
+        <Show when={myProfile() && myServices().length === 0}>
+          <EmptyState
+            class="mt-10"
+            icon={<Store size={20} />}
+            title="还没有发布服务"
+            description="设置服务类型、价格和地点后，客户就能直接预约。"
+            ctaLabel="发布服务"
+            onClick={() => scrollToId("publish-service")}
+          />
+        </Show>
+
         <section class="mt-10 grid gap-6 lg:grid-cols-2">
-          <Card>
+          <Card id="creator-profile">
             <CardHeader>
               <CardTitle class="flex items-center gap-2">
                 <User size={18} class="text-primary" />
@@ -495,7 +568,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card id="publish-service">
             <CardHeader>
               <CardTitle class="flex items-center gap-2">
                 <Store size={18} class="text-primary" />
@@ -697,8 +770,8 @@ export default function Dashboard() {
             <Show
               when={(creatorAppointments.data?.length ?? 0) > 0}
               fallback={
-                <div class="grid min-h-32 place-items-center rounded-lg border border-dashed border-line text-sm text-muted">
-                  暂时还没有客户预约
+                <div class="grid min-h-32 place-items-center rounded-lg border border-dashed border-line px-5 text-center text-sm text-muted">
+                  暂时还没有客户预约。完善资料并发布服务后，客户就能在这里下单。
                 </div>
               }
             >
