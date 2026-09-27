@@ -5,13 +5,14 @@ use axum::{
     routing::get,
     Json, Router,
 };
-use common::{ApiResponse, AppError};
+use common::{ApiResponse, AppError, PaginatedResponse, Pagination};
 use serde::Deserialize;
 use services::creator_service::{CreatorProfileDto, UpsertProfileInput};
 
 #[derive(Debug, Deserialize)]
 struct ListCreatorsQuery {
-    limit: Option<u64>,
+    #[serde(flatten)]
+    pagination: Pagination,
 }
 
 #[derive(Debug, Deserialize)]
@@ -31,9 +32,13 @@ pub fn router() -> Router<AppState> {
 async fn list_creators(
     State(state): State<AppState>,
     Query(query): Query<ListCreatorsQuery>,
-) -> Result<Json<ApiResponse<Vec<CreatorProfileDto>>>, AppError> {
-    let creators = state.creators.list(query.limit.unwrap_or(50)).await?;
-    Ok(Json(ApiResponse::success(creators)))
+) -> Result<Json<ApiResponse<PaginatedResponse<CreatorProfileDto>>>, AppError> {
+    let page = query.pagination.page();
+    let page_size = query.pagination.page_size();
+    let (items, total) = state.creators.list_paginated(page, page_size).await?;
+    Ok(Json(ApiResponse::success(PaginatedResponse::new(
+        items, total, page, page_size,
+    ))))
 }
 
 async fn get_creator(

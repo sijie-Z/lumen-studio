@@ -127,3 +127,10 @@
 - **Summary**: Polished creator profile with real work filtering, tabs, identity header and four-state UI; rebuilt work detail with real creator routing, removed fake favorite/contact actions and added related works; reworked home hierarchy, query states and responsive spacing. pnpm build passed with 1846 modules; only web pages were changed.
 - **Next**: Run browser-level visual checks for creator profile, work detail, home, and then extend search/filter coverage
 
+### [2026-09-28 00:58] main — Paginate list APIs and connect the existing PaginatedResponse contract
+
+- **Task**: Paginate list APIs and connect the existing PaginatedResponse contract
+- **Branch**: main
+- **Summary**: Implemented paginated works, services, and creators APIs with search/category/type/location filters; connected explore and services pages to server-side pagination and four-state UI; verified cargo test --workspace and pnpm build
+- **Next**: Run browser-level pagination, search, and filter checks for explore and services; then add API-level route tests for paginated responses
+

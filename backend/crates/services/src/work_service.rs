@@ -2,7 +2,8 @@ use chrono::{DateTime, Utc};
 use common::AppError;
 use db::entities::{user as user_entity, work as work_entity, WorkModel};
 use sea_orm::{
-    ActiveModelTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryOrder, QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, QuerySelect, Select, Set,
 };
 use serde::Serialize;
 
@@ -63,7 +64,7 @@ impl WorkService {
     }
 
     pub async fn list(&self, limit: u64) -> Result<Vec<WorkDto>, AppError> {
-        let rows = work_entity::Entity::find()
+        let rows = apply_work_filters(work_entity::Entity::find(), None, None, None)
             .find_with_related(user_entity::Entity)
             .order_by_desc(work_entity::Column::CreatedAt)
             .limit(limit.min(100))
@@ -82,12 +83,75 @@ impl WorkService {
             .collect())
     }
 
+    pub async fn list_paginated(
+        &self,
+        page: u64,
+        page_size: u64,
+        category: Option<String>,
+        creator_id: Option<i32>,
+        query: Option<String>,
+    ) -> Result<(Vec<WorkDto>, u64), AppError> {
+        let total = apply_work_filters(
+            work_entity::Entity::find(),
+            category.as_deref(),
+            creator_id,
+            query.as_deref(),
+        )
+        .count(&self.db)
+        .await
+        .map_err(AppError::from_anyhow)?;
+
+        let rows = apply_work_filters(
+            work_entity::Entity::find(),
+            category.as_deref(),
+            creator_id,
+            query.as_deref(),
+        )
+        .find_with_related(user_entity::Entity)
+        .order_by_desc(work_entity::Column::CreatedAt)
+        .offset((page.saturating_sub(1)) * page_size)
+        .limit(page_size)
+        .all(&self.db)
+        .await
+        .map_err(AppError::from_anyhow)?;
+
+        let items = rows
+            .into_iter()
+            .map(|(work, users)| {
+                let creator_name = users
+                    .first()
+                    .map(|user| user.nickname.clone())
+                    .unwrap_or_else(|| "匿名创作者".into());
+                to_dto(work, creator_name)
+            })
+            .collect();
+        Ok((items, total))
+    }
+
     pub async fn count(&self) -> Result<u64, AppError> {
         work_entity::Entity::find()
             .count(&self.db)
             .await
             .map_err(AppError::from_anyhow)
     }
+}
+
+fn apply_work_filters(
+    mut query: Select<work_entity::Entity>,
+    category: Option<&str>,
+    creator_id: Option<i32>,
+    keyword: Option<&str>,
+) -> Select<work_entity::Entity> {
+    if let Some(category) = category.filter(|value| !value.trim().is_empty()) {
+        query = query.filter(work_entity::Column::Category.eq(category.trim()));
+    }
+    if let Some(creator_id) = creator_id {
+        query = query.filter(work_entity::Column::UserId.eq(creator_id));
+    }
+    if let Some(keyword) = keyword.filter(|value| !value.trim().is_empty()) {
+        query = query.filter(work_entity::Column::Title.like(format!("%{}%", keyword.trim())));
+    }
+    query
 }
 
 fn to_dto(model: WorkModel, creator_name: String) -> WorkDto {
@@ -138,5 +202,75 @@ mod tests {
         assert_eq!(created.image_url, "/uploads/one.jpg");
         assert_eq!(service.count().await.unwrap(), 1);
         assert_eq!(service.list(20).await.unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn paginated_list_filters_and_counts_works() {
+        let db = db::connect("sqlite::memory:").await.unwrap();
+        migrations::run(&db).await.unwrap();
+
+        let now = Utc::now();
+        user_entity::ActiveModel {
+            username: Set("artist".into()),
+            password_hash: Set("hash".into()),
+            nickname: Set("Artist".into()),
+            status: Set("active".into()),
+            role: Set("user".into()),
+            verification_status: Set("unverified".into()),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+
+        let service = WorkService::new(db);
+        for (title, category) in [
+            ("Morning portrait", Some("portrait")),
+            ("Wedding story", Some("wedding")),
+            ("Evening portrait", Some("portrait")),
+        ] {
+            service
+                .create(
+                    1,
+                    format!("/uploads/{title}.jpg"),
+                    Some(title.into()),
+                    None,
+                    category.map(str::to_string),
+                )
+                .await
+                .unwrap();
+        }
+
+        let (first_page, total) = service
+            .list_paginated(1, 2, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(total, 3);
+        assert_eq!(first_page.len(), 2);
+
+        let (second_page, total) = service
+            .list_paginated(2, 2, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(total, 3);
+        assert_eq!(second_page.len(), 1);
+
+        let (portraits, total) = service
+            .list_paginated(1, 20, Some("portrait".into()), None, None)
+            .await
+            .unwrap();
+        assert_eq!(total, 2);
+        assert!(portraits
+            .iter()
+            .all(|work| work.category.as_deref() == Some("portrait")));
+
+        let (matches, total) = service
+            .list_paginated(1, 20, None, None, Some("wedding".into()))
+            .await
+            .unwrap();
+        assert_eq!(total, 1);
+        assert_eq!(matches[0].title.as_deref(), Some("Wedding story"));
     }
 }

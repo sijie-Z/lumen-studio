@@ -95,7 +95,9 @@
     },
     {
       "name": "Paginate list APIs and connect the existing PaginatedResponse contract",
-      "status": "todo"
+      "status": "done",
+      "started": "2026-09-28 00:58",
+      "finished": "2026-09-28 00:58"
     },
     {
       "name": "Add browser coverage for pagination, search, filters, and creator onboarding",

@@ -18,7 +18,7 @@
     "Creator identity is still profile-based for onboarding; customer and creator capabilities are not yet a first-class role model",
     "Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment"
   ],
-  "next_step": "Run browser-level visual checks for creator profile, work detail, home, and then extend search/filter coverage",
+  "next_step": "Run browser-level pagination, search, and filter checks for explore and services; then add API-level route tests for paginated responses",
   "branch": "main",
   "active_work": [
     {
@@ -91,6 +91,10 @@
     },
     {
       "name": "Polish creator, work detail, and home pages",
+      "status": "done"
+    },
+    {
+      "name": "Paginate list APIs and connect the existing PaginatedResponse contract",
       "status": "done"
     }
   ]

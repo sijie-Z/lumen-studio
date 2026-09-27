@@ -1,4 +1,4 @@
-import { request } from "./api";
+import { PaginatedResponse, request } from "./api";
 
 export interface CreatorProfile {
   id: number;
@@ -85,8 +85,34 @@ export interface CreateAppointmentInput {
   notes?: string;
 }
 
-export async function listCreators() {
-  return request<CreatorProfile[]>("/creators");
+export interface ListCreatorsParams {
+  page?: number;
+  page_size?: number;
+}
+
+export interface ListServicesParams {
+  page?: number;
+  page_size?: number;
+  type_id?: number;
+  q?: string;
+  location?: string;
+}
+
+export async function listCreatorsPage(
+  params: ListCreatorsParams = {}
+): Promise<PaginatedResponse<CreatorProfile>> {
+  const search = new URLSearchParams();
+  if (params.page) search.set("page", String(params.page));
+  if (params.page_size) search.set("page_size", String(params.page_size));
+  const query = search.toString();
+  return request<PaginatedResponse<CreatorProfile>>(
+    `/creators${query ? `?${query}` : ""}`
+  );
+}
+
+export async function listCreators(): Promise<CreatorProfile[]> {
+  const response = await listCreatorsPage({ page: 1, page_size: 100 });
+  return response.items;
 }
 
 export async function getCreator(id: number | string) {
@@ -105,8 +131,24 @@ export async function listServiceTypes() {
   return request<ServiceType[]>("/service-types");
 }
 
-export async function listServices() {
-  return request<Service[]>("/services");
+export async function listServicesPage(
+  params: ListServicesParams = {}
+): Promise<PaginatedResponse<Service>> {
+  const search = new URLSearchParams();
+  if (params.page) search.set("page", String(params.page));
+  if (params.page_size) search.set("page_size", String(params.page_size));
+  if (params.type_id) search.set("type_id", String(params.type_id));
+  if (params.q?.trim()) search.set("q", params.q.trim());
+  if (params.location?.trim()) search.set("location", params.location.trim());
+  const query = search.toString();
+  return request<PaginatedResponse<Service>>(
+    `/services${query ? `?${query}` : ""}`
+  );
+}
+
+export async function listServices(): Promise<Service[]> {
+  const response = await listServicesPage({ page: 1, page_size: 100 });
+  return response.items;
 }
 
 export async function getService(id: number | string) {

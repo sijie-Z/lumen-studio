@@ -136,3 +136,11 @@
 
 *2026-09-27 20:23*
 
+## ADR-018: List pagination contract
+
+**Reason**: PaginatedResponse is used for paginated public list APIs while legacy array helpers remain for older pages
+
+**Impact**: New list screens use explicit page APIs and existing home/work/profile consumers stay compatible
+
+*2026-09-28 00:58*
+

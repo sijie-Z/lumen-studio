@@ -6,6 +6,14 @@ export interface ApiEnvelope<T> {
   data: T;
 }
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  has_next: boolean;
+}
+
 export class ApiError extends Error {
   status: number;
   code: number;

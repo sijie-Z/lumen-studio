@@ -1,26 +1,44 @@
 import { A } from "@solidjs/router";
 import { createQuery } from "@tanstack/solid-query";
 import { Search } from "lucide-solid";
-import { createMemo, createSignal, For, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
-import { EmptyState, ErrorState, LoadingState } from "../components/ui/state";
+import { EmptyState, ErrorState, LoadingState, PaginationState } from "../components/ui/state";
 import SiteFooter from "../components/layout/site-footer";
-import { listWorks } from "../lib/works-api";
+import { listWorksPage } from "../lib/works-api";
+
+const PAGE_SIZE = 12;
+const CATEGORIES = ["人像", "街拍", "婚礼", "商业", "旅行", "时尚", "美食"];
 
 export default function Explore() {
-  const works = createQuery(() => ({
-    queryKey: ["works"] as const,
-    queryFn: listWorks
-  }));
   const [query, setQuery] = createSignal("");
+  const [debouncedQuery, setDebouncedQuery] = createSignal("");
+  const [category, setCategory] = createSignal<string | null>(null);
+  const [page, setPage] = createSignal(1);
 
-  const filtered = createMemo(() => {
-    const keyword = query().trim().toLowerCase();
-    const list = works.data ?? [];
-    if (!keyword) return list;
-    return list.filter((item) => (item.title ?? "").toLowerCase().includes(keyword));
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  createEffect(() => {
+    const value = query().trim();
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      setDebouncedQuery(value);
+      setPage(1);
+    }, 300);
+    onCleanup(() => clearTimeout(searchTimer));
   });
+
+  const works = createQuery(() => ({
+    queryKey: ["works", page(), category(), debouncedQuery()] as const,
+    queryFn: () => listWorksPage({
+      page: page(),
+      page_size: PAGE_SIZE,
+      category: category() ?? undefined,
+      q: debouncedQuery() || undefined
+    })
+  }));
+  const items = createMemo(() => works.data?.items ?? []);
+  const pageCount = createMemo(() => Math.ceil((works.data?.total ?? 0) / PAGE_SIZE));
 
   return (
     <div class="min-h-screen bg-background text-foreground">
@@ -44,7 +62,38 @@ export default function Explore() {
           </div>
         </div>
 
-        <Show when={works.isLoading}>
+        <div class="mt-8 flex gap-2 overflow-x-auto pb-2">
+          <button
+            type="button"
+            onClick={() => {
+              setCategory(null);
+              setPage(1);
+            }}
+            class={category() === null
+              ? "shrink-0 rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground"
+              : "shrink-0 rounded-full border border-line px-4 py-2 text-sm text-muted hover:text-foreground"}
+          >
+            全部
+          </button>
+          <For each={CATEGORIES}>
+            {(item) => (
+              <button
+                type="button"
+                onClick={() => {
+                  setCategory(item);
+                  setPage(1);
+                }}
+                class={category() === item
+                  ? "shrink-0 rounded-full bg-primary px-4 py-2 text-sm text-primary-foreground"
+                  : "shrink-0 rounded-full border border-line px-4 py-2 text-sm text-muted hover:text-foreground"}
+              >
+                {item}
+              </button>
+            )}
+          </For>
+        </div>
+
+        <Show when={works.isLoading && !works.data}>
           <LoadingState class="mt-12" title="正在加载作品" description="正在从创作者作品库整理最新影像。" />
         </Show>
 
@@ -57,19 +106,28 @@ export default function Explore() {
           />
         </Show>
 
-        <Show when={works.isSuccess && filtered().length === 0}>
+        <Show when={works.isSuccess && items().length === 0}>
           <EmptyState
             class="mt-12"
             title={query() ? "没有找到匹配的作品" : "还没有作品"}
-            description={query() ? "换一个关键词，或清空搜索查看全部作品。" : "创作者上传作品后会展示在这里。"}
-            ctaLabel={query() ? "清空搜索" : undefined}
-            onClick={query() ? () => setQuery("") : undefined}
+            description={query() || category()
+              ? "换一个关键词或分类，查看其他作品。"
+              : "创作者上传作品后会展示在这里。"}
+            ctaLabel={query() || category() ? "清除筛选" : undefined}
+            onClick={query() || category()
+              ? () => {
+                  setQuery("");
+                  setDebouncedQuery("");
+                  setCategory(null);
+                  setPage(1);
+                }
+              : undefined}
           />
         </Show>
 
-        <Show when={works.isSuccess && filtered().length > 0}>
+        <Show when={works.isSuccess && items().length > 0}>
           <div class="mt-12 columns-1 gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4">
-            <For each={filtered()}>
+            <For each={items()}>
               {(item) => (
                 <A
                   href={`/works/${item.id}`}
@@ -96,6 +154,16 @@ export default function Explore() {
               )}
             </For>
           </div>
+        </Show>
+
+        <Show when={works.isSuccess && (works.data?.total ?? 0) > 0}>
+          <PaginationState
+            page={page()}
+            pageCount={pageCount()}
+            total={works.data?.total ?? 0}
+            disabled={works.isFetching}
+            onPageChange={setPage}
+          />
         </Show>
       </main>
 

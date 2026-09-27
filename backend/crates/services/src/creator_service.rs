@@ -3,8 +3,8 @@ use common::AppError;
 use db::entities::{creator_profile as profile_entity, CreatorProfileModel};
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
-    QueryOrder, QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
+    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
 use serde::Serialize;
 
@@ -124,6 +124,25 @@ impl CreatorService {
         Ok(models.into_iter().map(to_dto).collect())
     }
 
+    pub async fn list_paginated(
+        &self,
+        page: u64,
+        page_size: u64,
+    ) -> Result<(Vec<CreatorProfileDto>, u64), AppError> {
+        let total = profile_entity::Entity::find()
+            .count(&self.db)
+            .await
+            .map_err(AppError::from_anyhow)?;
+        let models = profile_entity::Entity::find()
+            .order_by_desc(profile_entity::Column::Rating)
+            .offset((page.saturating_sub(1)) * page_size)
+            .limit(page_size)
+            .all(&self.db)
+            .await
+            .map_err(AppError::from_anyhow)?;
+        Ok((models.into_iter().map(to_dto).collect(), total))
+    }
+
     pub async fn increment_stats(
         &self,
         creator_id: i32,
@@ -173,5 +192,59 @@ fn to_dto(model: CreatorProfileModel) -> CreatorProfileDto {
         avg_rating: model.avg_rating,
         created_at: model.created_at,
         updated_at: model.updated_at,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use db::entities::user as user_entity;
+    use db::migrations;
+
+    #[tokio::test]
+    async fn paginated_creators_return_total_and_page_sizes() {
+        let db = db::connect("sqlite::memory:").await.unwrap();
+        migrations::run(&db).await.unwrap();
+
+        for index in 0..3 {
+            let now = Utc::now();
+            user_entity::ActiveModel {
+                username: Set(format!("creator_{index}")),
+                password_hash: Set("hash".into()),
+                nickname: Set(format!("Creator {index}")),
+                status: Set("active".into()),
+                role: Set("user".into()),
+                verification_status: Set("unverified".into()),
+                created_at: Set(now),
+                updated_at: Set(now),
+                ..Default::default()
+            }
+            .insert(&db)
+            .await
+            .unwrap();
+        }
+
+        let service = CreatorService::new(db);
+        for user_id in 1..=3 {
+            service
+                .ensure_profile(
+                    user_id,
+                    UpsertProfileInput {
+                        introduction: None,
+                        bio: None,
+                        service_areas: None,
+                        portfolio_url: None,
+                    },
+                )
+                .await
+                .unwrap();
+        }
+
+        let (items, total) = service.list_paginated(1, 2).await.unwrap();
+        assert_eq!(total, 3);
+        assert_eq!(items.len(), 2);
+        let (items, total) = service.list_paginated(2, 2).await.unwrap();
+        assert_eq!(total, 3);
+        assert_eq!(items.len(), 1);
     }
 }

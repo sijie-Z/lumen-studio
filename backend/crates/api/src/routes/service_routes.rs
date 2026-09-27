@@ -5,13 +5,17 @@ use axum::{
     routing::get,
     Json, Router,
 };
-use common::{ApiResponse, AppError};
+use common::{ApiResponse, AppError, PaginatedResponse, Pagination};
 use serde::Deserialize;
 use services::service_catalog::{CreateServiceInput, ServiceDto, ServiceTypeDto};
 
 #[derive(Debug, Deserialize)]
 struct ListServicesQuery {
-    limit: Option<u64>,
+    #[serde(flatten)]
+    pagination: Pagination,
+    type_id: Option<i32>,
+    q: Option<String>,
+    location: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -49,12 +53,16 @@ async fn list_types(
 async fn list_services(
     State(state): State<AppState>,
     Query(query): Query<ListServicesQuery>,
-) -> Result<Json<ApiResponse<Vec<ServiceDto>>>, AppError> {
-    let services = state
+) -> Result<Json<ApiResponse<PaginatedResponse<ServiceDto>>>, AppError> {
+    let page = query.pagination.page();
+    let page_size = query.pagination.page_size();
+    let (items, total) = state
         .services
-        .list_active(query.limit.unwrap_or(60))
+        .list_active_paginated(page, page_size, query.type_id, query.q, query.location)
         .await?;
-    Ok(Json(ApiResponse::success(services)))
+    Ok(Json(ApiResponse::success(PaginatedResponse::new(
+        items, total, page, page_size,
+    ))))
 }
 
 async fn get_service(

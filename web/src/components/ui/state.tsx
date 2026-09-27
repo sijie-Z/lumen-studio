@@ -1,4 +1,4 @@
-import { AlertCircle, LoaderCircle, RefreshCw } from "lucide-solid";
+import { AlertCircle, ChevronLeft, ChevronRight, LoaderCircle, RefreshCw } from "lucide-solid";
 import type { Component, JSX } from "solid-js";
 import { cn } from "../../lib/cn";
 import { Button } from "./button";
@@ -43,6 +43,43 @@ export const ErrorState: Component<ErrorStateProps> = (props) => (
           {props.retryLabel ?? "重新加载"}
         </Button>
       )}
+    </div>
+  </div>
+);
+
+interface PaginationStateProps {
+  page: number;
+  pageCount: number;
+  total: number;
+  onPageChange: (page: number) => void;
+  disabled?: boolean;
+  class?: string;
+}
+
+export const PaginationState: Component<PaginationStateProps> = (props) => (
+  <div class={cn("mt-8 flex flex-col gap-3 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between", props.class)}>
+    <p class="text-sm text-muted">
+      共 {props.total} 条 · 第 {props.page} / {Math.max(props.pageCount, 1)} 页
+    </p>
+    <div class="flex items-center gap-2">
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={props.disabled || props.page <= 1}
+        onClick={() => props.onPageChange(props.page - 1)}
+      >
+        <ChevronLeft size={15} />
+        上一页
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={props.disabled || props.page >= props.pageCount}
+        onClick={() => props.onPageChange(props.page + 1)}
+      >
+        下一页
+        <ChevronRight size={15} />
+      </Button>
     </div>
   </div>
 );

@@ -3,8 +3,8 @@ use common::AppError;
 use db::entities::{service as service_entity, service_type as type_entity, ServiceModel};
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
-    QueryOrder, QuerySelect, Set,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
+    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Select, Set,
 };
 use serde::Serialize;
 
@@ -114,10 +114,12 @@ impl ServiceCatalog {
         if input.title.trim().is_empty() {
             return Err(AppError::BadRequest("title is required".into()));
         }
-        let money = app_core::Money::new(input.price)
-            .map_err(|e| AppError::BadRequest(e.to_string()))?;
+        let money =
+            app_core::Money::new(input.price).map_err(|e| AppError::BadRequest(e.to_string()))?;
         if money.amount() <= Decimal::ZERO {
-            return Err(AppError::BadRequest("price must be greater than zero".into()));
+            return Err(AppError::BadRequest(
+                "price must be greater than zero".into(),
+            ));
         }
 
         let service_type = type_entity::Entity::find_by_id(input.type_id)
@@ -154,14 +156,47 @@ impl ServiceCatalog {
     }
 
     pub async fn list_active(&self, limit: u64) -> Result<Vec<ServiceDto>, AppError> {
-        let models = service_entity::Entity::find()
-            .filter(service_entity::Column::IsActive.eq(true))
+        let models = apply_service_filters(service_entity::Entity::find(), None, None, None)
             .order_by_desc(service_entity::Column::CreatedAt)
             .limit(limit.min(100))
             .all(&self.db)
             .await
             .map_err(AppError::from_anyhow)?;
         Ok(models.into_iter().map(to_dto).collect())
+    }
+
+    pub async fn list_active_paginated(
+        &self,
+        page: u64,
+        page_size: u64,
+        type_id: Option<i32>,
+        query: Option<String>,
+        location: Option<String>,
+    ) -> Result<(Vec<ServiceDto>, u64), AppError> {
+        let total = apply_service_filters(
+            service_entity::Entity::find(),
+            type_id,
+            query.as_deref(),
+            location.as_deref(),
+        )
+        .count(&self.db)
+        .await
+        .map_err(AppError::from_anyhow)?;
+
+        let models = apply_service_filters(
+            service_entity::Entity::find(),
+            type_id,
+            query.as_deref(),
+            location.as_deref(),
+        )
+        .order_by_desc(service_entity::Column::CreatedAt)
+        .offset((page.saturating_sub(1)) * page_size)
+        .limit(page_size)
+        .all(&self.db)
+        .await
+        .map_err(AppError::from_anyhow)?;
+
+        Ok((models.into_iter().map(to_dto).collect(), total))
     }
 
     pub async fn list_by_creator(&self, creator_id: i32) -> Result<Vec<ServiceDto>, AppError> {
@@ -228,6 +263,26 @@ fn clean(value: Option<String>) -> Option<String> {
     value.filter(|v| !v.trim().is_empty())
 }
 
+fn apply_service_filters(
+    mut query: Select<service_entity::Entity>,
+    type_id: Option<i32>,
+    keyword: Option<&str>,
+    location: Option<&str>,
+) -> Select<service_entity::Entity> {
+    query = query.filter(service_entity::Column::IsActive.eq(true));
+    if let Some(type_id) = type_id {
+        query = query.filter(service_entity::Column::TypeId.eq(type_id));
+    }
+    if let Some(keyword) = keyword.filter(|value| !value.trim().is_empty()) {
+        query = query.filter(service_entity::Column::Title.like(format!("%{}%", keyword.trim())));
+    }
+    if let Some(location) = location.filter(|value| !value.trim().is_empty()) {
+        query =
+            query.filter(service_entity::Column::Location.like(format!("%{}%", location.trim())));
+    }
+    query
+}
+
 fn to_dto(model: ServiceModel) -> ServiceDto {
     ServiceDto {
         id: model.id,
@@ -246,5 +301,117 @@ fn to_dto(model: ServiceModel) -> ServiceDto {
         appointments_count: model.appointments_count,
         created_at: model.created_at,
         updated_at: model.updated_at,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use db::entities::{creator_profile as creator_entity, user as user_entity};
+    use db::migrations;
+    use sea_orm::{EntityTrait, PaginatorTrait};
+
+    #[tokio::test]
+    async fn paginated_active_services_apply_type_and_text_filters() {
+        let db = db::connect("sqlite::memory:").await.unwrap();
+        migrations::run(&db).await.unwrap();
+        let catalog = ServiceCatalog::new(db.clone());
+        catalog.ensure_default_types().await.unwrap();
+
+        for index in 0..3 {
+            let now = Utc::now();
+            user_entity::ActiveModel {
+                username: Set(format!("service_creator_{index}")),
+                password_hash: Set("hash".into()),
+                nickname: Set(format!("Service Creator {index}")),
+                status: Set("active".into()),
+                role: Set("user".into()),
+                verification_status: Set("unverified".into()),
+                created_at: Set(now),
+                updated_at: Set(now),
+                ..Default::default()
+            }
+            .insert(&db)
+            .await
+            .unwrap();
+            creator_entity::ActiveModel {
+                user_id: Set(index + 1),
+                rating: Set(Decimal::new(50, 1)),
+                certification_level: Set("standard".into()),
+                total_services: Set(0),
+                total_appointments: Set(0),
+                total_income: Set(Decimal::ZERO),
+                avg_rating: Set(Decimal::ZERO),
+                created_at: Set(now),
+                updated_at: Set(now),
+                ..Default::default()
+            }
+            .insert(&db)
+            .await
+            .unwrap();
+        }
+
+        for (creator_id, title, location, type_name) in [
+            (1, "杭州街拍", "杭州", "人像摄影"),
+            (2, "上海婚礼", "上海", "婚礼纪实"),
+            (3, "杭州婚礼", "杭州", "婚礼纪实"),
+        ] {
+            let type_id = type_entity::Entity::find()
+                .filter(type_entity::Column::Name.eq(type_name))
+                .one(&db)
+                .await
+                .unwrap()
+                .unwrap()
+                .id;
+            catalog
+                .create(
+                    creator_id,
+                    CreateServiceInput {
+                        type_id,
+                        title: title.into(),
+                        description: None,
+                        price: Decimal::new(100_00, 2),
+                        duration: Some(120),
+                        cover_image_url: None,
+                        location: Some(location.into()),
+                        tags: None,
+                        options: None,
+                    },
+                )
+                .await
+                .unwrap();
+        }
+
+        let (items, total) = catalog
+            .list_active_paginated(1, 2, None, None, None)
+            .await
+            .unwrap();
+        assert_eq!(total, 3);
+        assert_eq!(items.len(), 2);
+
+        let wedding_type_id = type_entity::Entity::find()
+            .filter(type_entity::Column::Name.eq("婚礼纪实"))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap()
+            .id;
+        let (items, total) = catalog
+            .list_active_paginated(1, 20, Some(wedding_type_id), Some("婚礼".into()), None)
+            .await
+            .unwrap();
+        assert_eq!(total, 2);
+        assert!(items.iter().all(|service| service.title.contains("婚礼")));
+
+        let (items, total) = catalog
+            .list_active_paginated(1, 20, None, None, Some("杭州".into()))
+            .await
+            .unwrap();
+        assert_eq!(total, 2);
+        assert!(items
+            .iter()
+            .all(|service| service.location.as_deref() == Some("杭州")));
+
+        assert_eq!(service_entity::Entity::find().count(&db).await.unwrap(), 3);
     }
 }

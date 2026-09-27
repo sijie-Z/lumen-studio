@@ -5,13 +5,17 @@ use axum::{
     routing::get,
     Json, Router,
 };
-use common::{ApiResponse, AppError};
+use common::{ApiResponse, AppError, PaginatedResponse, Pagination};
 use serde::Deserialize;
 use services::work_service::WorkDto;
 
 #[derive(Debug, Deserialize)]
 pub struct ListWorksQuery {
-    limit: Option<u64>,
+    #[serde(flatten)]
+    pagination: Pagination,
+    category: Option<String>,
+    creator_id: Option<i32>,
+    q: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -29,9 +33,16 @@ pub fn router() -> Router<AppState> {
 async fn list_works(
     State(state): State<AppState>,
     Query(query): Query<ListWorksQuery>,
-) -> Result<Json<ApiResponse<Vec<WorkDto>>>, AppError> {
-    let works = state.works.list(query.limit.unwrap_or(60)).await?;
-    Ok(Json(ApiResponse::success(works)))
+) -> Result<Json<ApiResponse<PaginatedResponse<WorkDto>>>, AppError> {
+    let page = query.pagination.page();
+    let page_size = query.pagination.page_size();
+    let (items, total) = state
+        .works
+        .list_paginated(page, page_size, query.category, query.creator_id, query.q)
+        .await?;
+    Ok(Json(ApiResponse::success(PaginatedResponse::new(
+        items, total, page, page_size,
+    ))))
 }
 
 async fn create_work(

@@ -21,6 +21,7 @@
 - [x] Core booking-to-payment handoff and four-state UI feedback
 - [x] Browser regression for guarded layouts, full transaction, notifications, and cancellation refunds
 - [x] Polish creator, work detail, and home pages
+- [x] Paginate list APIs and connect the existing PaginatedResponse contract
 
 ## Recent Changes
 - web/src/pages/home.tsx
@@ -42,4 +43,4 @@
 - Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment
 
 ## Next Step
-- Run browser-level visual checks for creator profile, work detail, home, and then extend search/filter coverage
+- Run browser-level pagination, search, and filter checks for explore and services; then add API-level route tests for paginated responses

@@ -101,6 +101,12 @@
       "reason": "Account, creator, and admin pages duplicated headers and performed request-failure-based redirects; public pages also carried their own navigation shell",
       "impact": "web routes are grouped into public/customer/creator/admin layouts; AppShell owns navigation, notification, user menu, and mobile behavior; RequireAuth handles session hydration and RequireRole handles admin authorization before page render; creator onboarding remains available to authenticated customers until capabilities become a first-class role model",
       "date": "2026-09-27 20:23"
+    },
+    {
+      "title": "List pagination contract",
+      "reason": "PaginatedResponse is used for paginated public list APIs while legacy array helpers remain for older pages",
+      "impact": "New list screens use explicit page APIs and existing home/work/profile consumers stay compatible",
+      "date": "2026-09-28 00:58"
     }
   ]
 }
