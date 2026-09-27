@@ -1,9 +1,9 @@
 # Task Board
 
 ## TODO
-- Browser E2E for grouped layouts, role redirects, and booking-to-payment handoff
 - Introduce first-class customer/creator capabilities without blocking creator onboarding
 - Paginate list APIs and connect the existing PaginatedResponse contract
+- Add browser coverage for pagination, search, filters, and creator onboarding
 
 ## DOING
 - (empty)
@@ -27,4 +27,5 @@
 - Frontend grouped layouts + shared AppShell + route guards
 - Unified loading/error/empty/success states on core pages
 - Booking success now links directly to the highlighted order payment action
+- Full browser regression for guarded layouts and refund flow
 

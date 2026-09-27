@@ -198,15 +198,13 @@ export default function Account() {
           </A>
         </div>
 
-        <Show when={hasAppointments()}>
-          <StepGuide
-            id="customer-onboarding"
-            class="mt-6"
-            title="完成一次预约"
-            description="从选服务到评价，按顺序完成即可。"
-            steps={customerSteps()}
-          />
-        </Show>
+        <StepGuide
+          id="customer-onboarding"
+          class="mt-6"
+          title="完成一次预约"
+          description="从选服务到评价，按顺序完成即可。"
+          steps={customerSteps()}
+        />
 
         <Card class="mt-6 border-primary/30 bg-primary/5">
           <CardContent class="flex flex-col gap-4 pt-5 sm:flex-row sm:items-center sm:justify-between">

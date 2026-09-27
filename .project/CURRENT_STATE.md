@@ -19,33 +19,20 @@
 - [x] Onboarding and notification browser E2E
 - [x] Frontend route groups, shared AppShell, and unified route guards
 - [x] Core booking-to-payment handoff and four-state UI feedback
+- [x] Browser regression for guarded layouts, full transaction, notifications, and cancellation refunds
 
 ## Recent Changes
-- web/src/main.tsx
-- web/src/components/layout/app-shell.tsx
-- web/src/components/layout/notification-bell.tsx
-- web/src/components/layout/require-auth.tsx
-- web/src/components/layout/require-role.tsx
-- web/src/components/layout/public-layout.tsx
-- web/src/components/layout/customer-layout.tsx
-- web/src/components/layout/creator-layout.tsx
-- web/src/components/layout/admin-layout.tsx
-- web/src/components/ui/state.tsx
+- web/scripts/regression_e2e.py
 - web/src/pages/account.tsx
-- web/src/pages/dashboard.tsx
-- web/src/pages/admin.tsx
-- web/src/pages/service-detail.tsx
-- web/src/pages/explore.tsx
-- web/src/pages/services.tsx
-- web/src/pages/work-detail.tsx
-- web/src/pages/creator-profile.tsx
+- web/index.html
+- web/public/favicon.svg
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
 - smoke test still writes to main photography.db
 - Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents
 - Creator identity is still profile-based for onboarding; customer and creator capabilities are not yet a first-class role model
-- Browser-level verification of the four grouped layouts and role redirects is still pending
+- Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment
 
 ## Next Step
-- Run browser E2E for public/customer/creator/admin layouts, route guards, notification bell, and booking-to-payment handoff
+- Continue product-level coverage for pagination, search/filtering, creator profile onboarding, and post-refund notification semantics

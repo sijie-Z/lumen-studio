@@ -110,3 +110,13 @@
 - **Risks**: Browser-level route guard and responsive shell verification is still pending; creator capability remains profile-based during onboarding
 - **Next**: Run grouped-layout browser E2E for public, customer, creator, and admin flows
 
+### [2026-09-27 20:49] main — Full browser regression for guarded layouts and refunds
+
+- **Task**: Full browser-level regression for route guards, unified shell, transaction flow, cancellation refund, payment handoff, onboarding, and notifications
+- **Branch**: main
+- **Files**: web/scripts/regression_e2e.py; web/src/pages/account.tsx; web/index.html; web/public/favicon.svg
+- **Summary**: Added isolated A-F Playwright regression using test_runtime.py, Chrome channel, 14 screenshots, API balance/payment assertions, and main DB SHA-256 comparison. Fixed the customer onboarding guide being hidden for users with zero appointments, and added a favicon to remove the final browser 404.
+- **Verification**: Regression E2E passed A-F; cargo test -p services --test transaction_consistency passed 7/7; pnpm build passed; main photography.db SHA-256 unchanged; ports 8080 and 5173 released.
+- **Risks**: Chrome channel is required on this machine because bundled Playwright Chromium crashes in the current Windows environment.
+- **Next**: Extend browser coverage to pagination, search/filtering, creator onboarding, and refund notification semantics
+
