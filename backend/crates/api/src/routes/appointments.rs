@@ -51,6 +51,26 @@ async fn create_appointment(
     Json(body): Json<CreateAppointmentInput>,
 ) -> Result<Json<ApiResponse<AppointmentDto>>, AppError> {
     let appointment = state.appointments.create(claims.sub, body).await?;
+    if let Err(error) = state
+        .notifications
+        .create_for_creator(
+            appointment.creator_id,
+            "appointment_created",
+            "新的预约请求",
+            Some(format!(
+                "客户提交了预约 #{}，时间：{}。",
+                appointment.id, appointment.start_time
+            )),
+            Some("/dashboard".into()),
+        )
+        .await
+    {
+        tracing::warn!(
+            ?error,
+            appointment_id = appointment.id,
+            "failed to create appointment notification"
+        );
+    }
     Ok(Json(ApiResponse::success(appointment)))
 }
 
@@ -72,6 +92,23 @@ async fn transition(
         .await?;
     if target == "completed" {
         state.payments.settle(id).await?;
+        if let Err(error) = state
+            .notifications
+            .create(
+                appointment.user_id,
+                "appointment_completed",
+                "服务已完成，欢迎评价",
+                Some(format!("预约 #{} 已完成，可以前往订单页提交评价。", id)),
+                Some("/account".into()),
+            )
+            .await
+        {
+            tracing::warn!(
+                ?error,
+                appointment_id = id,
+                "failed to create completion notification"
+            );
+        }
     }
     Ok(Json(ApiResponse::success(appointment)))
 }

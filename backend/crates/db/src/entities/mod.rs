@@ -1,5 +1,6 @@
 pub mod appointment;
 pub mod creator_profile;
+pub mod notification;
 pub mod payment;
 pub mod review;
 pub mod service;
@@ -10,6 +11,7 @@ pub mod work;
 
 pub use appointment::{Entity as AppointmentEntity, Model as AppointmentModel};
 pub use creator_profile::{Entity as CreatorProfileEntity, Model as CreatorProfileModel};
+pub use notification::{Entity as NotificationEntity, Model as NotificationModel};
 pub use payment::{Entity as PaymentEntity, Model as PaymentModel};
 pub use review::{Entity as ReviewEntity, Model as ReviewModel};
 pub use service::{Entity as ServiceEntity, Model as ServiceModel};

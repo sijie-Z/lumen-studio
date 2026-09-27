@@ -42,6 +42,25 @@ async fn apply_withdrawal(
         .withdrawals
         .apply(claims.sub, body.amount, body.account_info)
         .await?;
+    if let Err(error) = state
+        .notifications
+        .create_for_admins(
+            "withdrawal_requested",
+            "新的提现申请",
+            Some(format!(
+                "创作者 #{} 提交了提现申请 #{}，金额 ¥{}。",
+                withdrawal.creator_id, withdrawal.id, withdrawal.amount
+            )),
+            Some("/admin".into()),
+        )
+        .await
+    {
+        tracing::warn!(
+            ?error,
+            withdrawal_id = withdrawal.id,
+            "failed to notify admins"
+        );
+    }
     Ok(Json(ApiResponse::success(withdrawal)))
 }
 
@@ -78,6 +97,33 @@ async fn review_withdrawal(
         .withdrawals
         .review(id, claims.sub, body.approve, body.note)
         .await?;
+    let title = if body.approve {
+        "提现申请已通过"
+    } else {
+        "提现申请已拒绝"
+    };
+    if let Err(error) = state
+        .notifications
+        .create_for_creator(
+            withdrawal.creator_id,
+            "withdrawal_reviewed",
+            title,
+            Some(format!(
+                "提现申请 #{} 已{}，金额 ¥{}。",
+                withdrawal.id,
+                if body.approve { "通过" } else { "拒绝" },
+                withdrawal.amount
+            )),
+            Some("/dashboard".into()),
+        )
+        .await
+    {
+        tracing::warn!(
+            ?error,
+            withdrawal_id = withdrawal.id,
+            "failed to notify creator"
+        );
+    }
     Ok(Json(ApiResponse::success(withdrawal)))
 }
 

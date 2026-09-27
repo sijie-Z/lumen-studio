@@ -120,3 +120,11 @@
 
 *2026-09-27 16:23*
 
+## ADR-016: Best-effort in-app notifications
+
+**Reason**: Notification delivery must not roll back an already successful appointment, payment, or withdrawal operation
+
+**Impact**: Business routes call NotificationService after state changes; insert failures are logged without changing the primary API result
+
+*2026-09-27 16:40*
+

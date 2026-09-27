@@ -55,5 +55,22 @@ async fn pay_appointment(
         .payments
         .pay_appointment(claims.sub, id, method)
         .await?;
+    if let Err(error) = state
+        .notifications
+        .create_for_appointment_creator(
+            id,
+            "payment_received",
+            "客户已支付",
+            Some(format!("预约 #{} 已支付 ¥{}。", id, payment.amount)),
+            Some("/dashboard".into()),
+        )
+        .await
+    {
+        tracing::warn!(
+            ?error,
+            appointment_id = id,
+            "failed to create payment notification"
+        );
+    }
     Ok(Json(ApiResponse::success(payment)))
 }

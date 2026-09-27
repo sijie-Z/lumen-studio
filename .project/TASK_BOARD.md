@@ -23,4 +23,5 @@
 - Creator withdrawal application and admin review
 - Withdrawal browser E2E and release commit
 - User onboarding system
+- Message notification system
 

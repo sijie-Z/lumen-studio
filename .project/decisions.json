@@ -89,6 +89,12 @@
       "reason": "Prevents creators from spending the same balance while an admin review is pending; rejection restores the frozen amount atomically",
       "impact": "withdrawals are pending/completed/rejected; approval records completion, rejection refunds to user balance",
       "date": "2026-09-27 16:23"
+    },
+    {
+      "title": "Best-effort in-app notifications",
+      "reason": "Notification delivery must not roll back an already successful appointment, payment, or withdrawal operation",
+      "impact": "Business routes call NotificationService after state changes; insert failures are logged without changing the primary API result",
+      "date": "2026-09-27 16:40"
     }
   ]
 }

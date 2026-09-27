@@ -86,3 +86,10 @@
 - **Summary**: Implemented reusable StepGuide and EmptyState, then added role-based onboarding to customer, creator, admin, home, and service detail pages. pnpm build passed.
 - **Next**: Run browser-level onboarding checks for customer, creator, and admin roles
 
+### [2026-09-27 16:40] main — Message notification system
+
+- **Task**: Message notification system
+- **Branch**: main
+- **Summary**: Implemented notifications table/entity/migration, NotificationService, authenticated list/unread/read/read-all APIs, event triggers for appointment/payment/completion/withdrawal, and a polling notification bell in the shared header. cargo check -p api, cargo test -p api (7 tests), and pnpm build passed.
+- **Next**: Browser E2E: appointment/payment/completion/withdrawal notifications and unread badge
+

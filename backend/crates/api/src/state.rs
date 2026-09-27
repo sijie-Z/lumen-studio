@@ -4,6 +4,7 @@ use services::admin_service::AdminService;
 use services::appointment_service::AppointmentService;
 use services::auth_service::AuthService;
 use services::creator_service::CreatorService;
+use services::notification_service::NotificationService;
 use services::payment_service::PaymentService;
 use services::review_service::ReviewService;
 use services::service_catalog::ServiceCatalog;
@@ -20,6 +21,7 @@ pub struct AppState {
     pub services: ServiceCatalog,
     pub appointments: AppointmentService,
     pub payments: PaymentService,
+    pub notifications: NotificationService,
     pub reviews: ReviewService,
     pub admin: AdminService,
     pub withdrawals: WithdrawalService,

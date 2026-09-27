@@ -4,6 +4,7 @@ mod appointments;
 mod auth;
 mod creators;
 mod health;
+mod notifications;
 mod payments;
 mod reviews;
 mod service_routes;
@@ -23,6 +24,7 @@ pub fn router() -> Router<AppState> {
         .nest("/api/v1", service_routes::router())
         .nest("/api/v1", appointments::router())
         .nest("/api/v1", payments::router())
+        .nest("/api/v1", notifications::router())
         .nest("/api/v1", reviews::router())
         .nest("/api/v1", admin::router())
         .nest("/api/v1", works::router())
@@ -48,6 +50,7 @@ mod tests {
         auth_service::AuthService,
         creator_service::CreatorService,
         dto::{LoginInput, RegisterInput},
+        notification_service::NotificationService,
         payment_service::PaymentService,
         review_service::ReviewService,
         service_catalog::ServiceCatalog,
@@ -68,6 +71,7 @@ mod tests {
             services: ServiceCatalog::new(db.clone()),
             appointments: AppointmentService::new(db.clone()),
             payments: PaymentService::new(db.clone()),
+            notifications: NotificationService::new(db.clone()),
             reviews: ReviewService::new(db.clone()),
             withdrawals: WithdrawalService::new(db.clone()),
             admin: AdminService::new(db.clone()),
@@ -91,6 +95,21 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .uri("/api/v1/payments")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn notification_routes_require_authentication() {
+        let response = test_app()
+            .await
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/notifications")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -243,6 +262,77 @@ mod tests {
         let first_apply = response_json(first_apply).await;
         let first_id = first_apply["data"]["id"].as_i64().unwrap();
 
+        let notifications = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/notifications")
+                    .header(
+                        "authorization",
+                        format!("Bearer {}", admin_login.access_token),
+                    )
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(notifications.status(), StatusCode::OK);
+        let notifications = response_json(notifications).await;
+        assert_eq!(notifications["data"].as_array().unwrap().len(), 1);
+        assert_eq!(notifications["data"][0]["title"], "新的提现申请");
+        let notification_id = notifications["data"][0]["id"].as_i64().unwrap();
+
+        let unread = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/notifications/unread-count")
+                    .header(
+                        "authorization",
+                        format!("Bearer {}", admin_login.access_token),
+                    )
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let unread = response_json(unread).await;
+        assert_eq!(unread["data"]["count"], 1);
+
+        let marked = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri(format!("/api/v1/notifications/{notification_id}/read"))
+                    .header(
+                        "authorization",
+                        format!("Bearer {}", admin_login.access_token),
+                    )
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(marked.status(), StatusCode::OK);
+
+        let unread = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/notifications/unread-count")
+                    .header(
+                        "authorization",
+                        format!("Bearer {}", admin_login.access_token),
+                    )
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let unread = response_json(unread).await;
+        assert_eq!(unread["data"]["count"], 0);
+
         let creator_user = user_entity::Entity::find_by_id(creator.id)
             .one(&db)
             .await
@@ -296,6 +386,40 @@ mod tests {
         assert_eq!(second_apply.status(), StatusCode::OK);
         let second_apply = response_json(second_apply).await;
         let second_id = second_apply["data"]["id"].as_i64().unwrap();
+
+        let mark_all = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri("/api/v1/notifications/read-all")
+                    .header(
+                        "authorization",
+                        format!("Bearer {}", admin_login.access_token),
+                    )
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(mark_all.status(), StatusCode::OK);
+
+        let unread = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/notifications/unread-count")
+                    .header(
+                        "authorization",
+                        format!("Bearer {}", admin_login.access_token),
+                    )
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let unread = response_json(unread).await;
+        assert_eq!(unread["data"]["count"], 0);
 
         let approve = app
             .clone()

@@ -15,18 +15,19 @@
 - [x] Creator withdrawal application and admin review
 - [x] Withdrawal browser E2E and release commit
 - [x] User onboarding system
+- [x] Message notification system
 
 ## Recent Changes
+- web/src/components/layout/site-header.tsx
+- web/src/lib/notification-api.ts
+- backend/crates/db/src/migrations/m20260928_000007_create_notifications.rs
+- backend/crates/api/src/routes/notifications.rs
+- backend/crates/services/src/notification_service.rs
 - web/src/pages/service-detail.tsx
 - web/src/pages/home.tsx
 - web/src/pages/dashboard.tsx
 - web/src/pages/account.tsx
 - web/src/components/onboarding/empty-state.tsx
-- web/src/components/onboarding/step-guide.tsx
-- web/scripts/test_runtime.py
-- web/scripts/withdrawal_e2e.py
-- backend/crates/api/src/routes/mod.rs
-- backend/crates/services/tests/withdrawal_flow.rs
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
@@ -34,4 +35,4 @@
 - Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents
 
 ## Next Step
-- Run browser-level onboarding checks for customer, creator, and admin roles
+- Browser E2E: appointment/payment/completion/withdrawal notifications and unread badge

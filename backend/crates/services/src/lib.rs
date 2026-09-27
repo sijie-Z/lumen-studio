@@ -3,6 +3,7 @@ pub mod appointment_service;
 pub mod auth_service;
 pub mod creator_service;
 pub mod dto;
+pub mod notification_service;
 pub mod payment_service;
 pub mod review_service;
 pub mod seed;
