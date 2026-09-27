@@ -3,6 +3,11 @@ import sys
 from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
+from test_runtime import (
+    main_database_snapshot,
+    managed_test_environment,
+    print_main_database_comparison,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -166,6 +171,14 @@ def main() -> None:
             page.wait_for_selector("text=评价已提交，感谢你的反馈。", timeout=15000)
             screenshot(page, "08-review-submitted")
 
+            page.close()
+            page = context.new_page()
+            page.goto(f"{WEB_BASE}/creators/1", wait_until="domcontentloaded")
+            page.wait_for_selector("text=用户评价", timeout=15000)
+            page.wait_for_selector(
+                "text=端到端测试评价：拍摄过程顺利，交付及时。", timeout=15000
+            )
+
         except Exception:
             print("api errors:")
             for error in api_errors:
@@ -208,7 +221,11 @@ def main() -> None:
 
 if __name__ == "__main__":
     try:
-        main()
+        before = main_database_snapshot()
+        with managed_test_environment():
+            main()
+        after = main_database_snapshot()
+        print_main_database_comparison(before, after)
     except Exception as error:
         print(f"E2E FAILED: {error}", file=sys.stderr)
         raise

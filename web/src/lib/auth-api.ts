@@ -7,6 +7,7 @@ export interface UserDto {
   avatar_url: string | null;
   email: string | null;
   phone: string | null;
+  balance: string;
   role: string;
   status: string;
 }

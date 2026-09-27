@@ -1,27 +1,33 @@
 import { useNavigate } from "@solidjs/router";
-import { createQuery } from "@tanstack/solid-query";
+import { createQuery, useQueryClient } from "@tanstack/solid-query";
 import {
   Camera,
   CalendarDays,
+  Check,
   Image,
   Layers,
   LogOut,
   ShieldCheck,
   Store,
   Users,
+  X,
   Wallet
 } from "lucide-solid";
-import { createEffect, For, Show } from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import { Skeleton } from "../components/ui/skeleton";
 import { getStats, listUsers } from "../lib/admin-api";
 import { isAuthenticated } from "../lib/auth-api";
 import { useAuthStore } from "../stores/auth";
+import { listAllWithdrawals, reviewWithdrawal } from "../lib/withdrawal-api";
 
 export default function Admin() {
   const navigate = useNavigate();
   const auth = useAuthStore();
+  const queryClient = useQueryClient();
   const stats = createQuery(() => ({
     queryKey: ["admin-stats"] as const,
     queryFn: getStats,
@@ -32,6 +38,16 @@ export default function Admin() {
     queryFn: listUsers,
     enabled: isAuthenticated()
   }));
+
+  const withdrawals = createQuery(() => ({
+    queryKey: ["admin-withdrawals"] as const,
+    queryFn: listAllWithdrawals,
+    enabled: isAuthenticated()
+  }));
+  const [withdrawalNotes, setWithdrawalNotes] = createSignal<Record<number, string>>({});
+  const [reviewingWithdrawalId, setReviewingWithdrawalId] = createSignal<number | null>(null);
+  const [withdrawalReviewMsg, setWithdrawalReviewMsg] = createSignal("");
+  const [withdrawalReviewError, setWithdrawalReviewError] = createSignal("");
 
   createEffect(() => {
     if (!isAuthenticated()) navigate("/login");
@@ -45,6 +61,28 @@ export default function Admin() {
     { icon: CalendarDays, label: "预约", value: stats.data?.appointments ?? 0 },
     { icon: Image, label: "作品", value: stats.data?.works ?? 0 }
   ];
+
+  const pendingWithdrawals = () =>
+    (withdrawals.data ?? []).filter((item) => item.status === "pending");
+
+  function updateWithdrawalNote(id: number, note: string) {
+    setWithdrawalNotes({ ...withdrawalNotes(), [id]: note });
+  }
+
+  async function handleWithdrawalReview(id: number, approve: boolean) {
+    setReviewingWithdrawalId(id);
+    setWithdrawalReviewMsg("");
+    setWithdrawalReviewError("");
+    try {
+      await reviewWithdrawal(id, approve, withdrawalNotes()[id]?.trim() || undefined);
+      await queryClient.invalidateQueries({ queryKey: ["admin-withdrawals"] });
+      setWithdrawalReviewMsg(approve ? "提现已通过并标记为已打款。" : "提现已拒绝，金额已退回创作者余额。");
+    } catch (err) {
+      setWithdrawalReviewError(err instanceof Error ? err.message : "提现审核失败，请稍后重试。");
+    } finally {
+      setReviewingWithdrawalId(null);
+    }
+  }
 
   return (
     <div class="min-h-screen bg-background text-foreground">
@@ -147,6 +185,99 @@ export default function Admin() {
                   </For>
                 </tbody>
               </table>
+            </CardContent>
+          </Card>
+        </section>
+        <section class="mt-10">
+          <div class="mb-5 flex items-center gap-3">
+            <Wallet size={20} class="text-primary" />
+            <div>
+              <h2 class="font-display text-2xl font-semibold">提现审核</h2>
+              <p class="mt-1 text-sm text-muted">通过后视为已打款；拒绝时金额自动退回创作者余额。</p>
+            </div>
+          </div>
+          <Show when={withdrawalReviewMsg()}>
+            <div class="mb-4 rounded-lg border border-teal/30 bg-teal/10 px-4 py-3 text-sm text-teal">
+              {withdrawalReviewMsg()}
+            </div>
+          </Show>
+          <Show when={withdrawalReviewError()}>
+            <div class="mb-4 rounded-lg border border-coral/30 bg-coral/10 px-4 py-3 text-sm text-coral">
+              {withdrawalReviewError()}
+            </div>
+          </Show>
+          <Card>
+            <CardContent class="space-y-4 pt-5">
+              <Show when={withdrawals.isPending}>
+                <div class="grid min-h-32 place-items-center rounded-lg border border-dashed border-line text-sm text-muted">
+                  正在加载提现申请...
+                </div>
+              </Show>
+              <Show when={withdrawals.isError}>
+                <div class="grid min-h-32 place-items-center rounded-lg border border-dashed border-line text-sm text-muted">
+                  暂时无法加载提现申请。
+                </div>
+              </Show>
+              <Show when={withdrawals.data}>
+                <Show
+                  when={pendingWithdrawals().length > 0}
+                  fallback={
+                    <div class="grid min-h-32 place-items-center rounded-lg border border-dashed border-line text-sm text-muted">
+                      当前没有待审核提现
+                    </div>
+                  }
+                >
+                  <div class="space-y-4">
+                    <For each={pendingWithdrawals()}>
+                      {(item) => (
+                        <div class="rounded-lg border border-line bg-secondary p-4">
+                          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div class="min-w-0 space-y-2">
+                              <div class="flex flex-wrap items-center gap-3">
+                                <span class="font-medium">创作者 #{item.creator_id}</span>
+                                <Badge variant="accent">待审核</Badge>
+                                <span class="font-display text-xl font-semibold text-primary">¥{item.amount}</span>
+                              </div>
+                              <p class="break-all text-sm text-muted">
+                                收款账户：{item.account_info ? JSON.stringify(item.account_info) : "未填写"}
+                              </p>
+                              <p class="text-xs text-muted">
+                                申请时间：{new Date(item.created_at).toLocaleString("zh-CN")}
+                              </p>
+                            </div>
+                            <div class="w-full space-y-3 lg:max-w-md">
+                              <Input
+                                value={withdrawalNotes()[item.id] ?? ""}
+                                onInput={(event) => updateWithdrawalNote(item.id, event.currentTarget.value)}
+                                placeholder="审核备注（拒绝原因建议填写）"
+                              />
+                              <div class="flex justify-end gap-2">
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleWithdrawalReview(item.id, false)}
+                                  disabled={reviewingWithdrawalId() === item.id}
+                                >
+                                  <X />
+                                  拒绝
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleWithdrawalReview(item.id, true)}
+                                  disabled={reviewingWithdrawalId() === item.id}
+                                >
+                                  <Check />
+                                  通过并打款
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </Show>
+              </Show>
             </CardContent>
           </Card>
         </section>

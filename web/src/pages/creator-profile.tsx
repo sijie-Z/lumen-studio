@@ -9,6 +9,18 @@ import { Skeleton } from "../components/ui/skeleton";
 import SiteHeader from "../components/layout/site-header";
 import SiteFooter from "../components/layout/site-footer";
 import { getCreator, listServices } from "../lib/marketplace-api";
+import { listCreatorReviews } from "../lib/reviews-api";
+
+function formatReviewDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  }).format(date);
+}
 
 export default function CreatorProfile() {
   const params = useParams();
@@ -17,10 +29,15 @@ export default function CreatorProfile() {
     queryFn: () => getCreator(params.id ?? "")
   }));
   const services = createQuery(() => ({ queryKey: ["services"] as const, queryFn: listServices }));
+  const reviews = createQuery(() => ({
+    queryKey: ["creator-reviews", params.id] as const,
+    queryFn: () => listCreatorReviews(params.id ?? "")
+  }));
 
   const ownServices = createMemo(() =>
     (services.data ?? []).filter((item) => item.creator_id === Number(params.id))
   );
+  const reviewList = createMemo(() => reviews.data ?? []);
 
   return (
     <div class="min-h-screen bg-background text-foreground">
@@ -93,6 +110,92 @@ export default function CreatorProfile() {
                   )}
                 </For>
               </div>
+            </Show>
+          </section>
+
+          <section class="mt-12">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 class="font-display text-2xl font-semibold">用户评价</h2>
+                <p class="mt-2 text-sm text-muted">来自已完成预约的真实反馈</p>
+              </div>
+              <Show when={reviewList().length > 0}>
+                <Badge variant="outline">{reviewList().length} 条评价</Badge>
+              </Show>
+            </div>
+
+            <Show
+              when={!reviews.isLoading}
+              fallback={<Skeleton class="mt-6 h-32 w-full rounded-lg" />}
+            >
+              <Show
+                when={!reviews.isError}
+                fallback={
+                  <Card class="mt-6">
+                    <CardContent class="p-8 text-center text-muted">评价暂时无法加载</CardContent>
+                  </Card>
+                }
+              >
+                <Show
+                  when={reviewList().length > 0}
+                  fallback={
+                    <Card class="mt-6">
+                      <CardContent class="p-8 text-center text-muted">
+                        暂无用户评价，完成服务后期待你的真实反馈
+                      </CardContent>
+                    </Card>
+                  }
+                >
+                  <div class="mt-6 grid gap-4 md:grid-cols-2">
+                    <For each={reviewList()}>
+                      {(review) => (
+                        <Card>
+                          <CardContent class="p-5">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                              <div
+                                class="flex items-center gap-1"
+                                aria-label={`评分 ${review.rating} 分`}
+                              >
+                                <For each={Array.from({ length: 5 }, (_, index) => index)}>
+                                  {(index) => (
+                                    <Star
+                                      size={16}
+                                      class={
+                                        index < Math.round(Number(review.rating))
+                                          ? "fill-current text-primary"
+                                          : "text-line"
+                                      }
+                                    />
+                                  )}
+                                </For>
+                                <span class="ml-1 text-sm font-medium">{review.rating}</span>
+                              </div>
+                              <time class="text-xs text-muted" dateTime={review.created_at}>
+                                {formatReviewDate(review.created_at)}
+                              </time>
+                            </div>
+                            <Show
+                              when={review.content}
+                              fallback={
+                                <p class="mt-4 text-sm text-muted">用户未填写文字评价</p>
+                              }
+                            >
+                              <p class="mt-4 whitespace-pre-wrap text-sm leading-6 text-foreground/90">
+                                {review.content}
+                              </p>
+                            </Show>
+                            <Show when={review.is_anonymous}>
+                              <Badge variant="outline" class="mt-4">
+                                匿名评价
+                              </Badge>
+                            </Show>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </For>
+                  </div>
+                </Show>
+              </Show>
             </Show>
           </section>
         </Show>

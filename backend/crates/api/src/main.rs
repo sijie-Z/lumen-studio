@@ -52,6 +52,7 @@ async fn main() -> anyhow::Result<()> {
         appointments: services::appointment_service::AppointmentService::new(db.clone()),
         payments: services::payment_service::PaymentService::new(db.clone()),
         reviews: services::review_service::ReviewService::new(db.clone()),
+        withdrawals: services::withdrawal_service::WithdrawalService::new(db.clone()),
         admin: services::admin_service::AdminService::new(db),
     };
 

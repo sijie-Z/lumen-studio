@@ -11,6 +11,7 @@ import {
   Sparkles,
   Store,
   CalendarClock,
+  Wallet,
   User
 } from "lucide-solid";
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
@@ -32,6 +33,7 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import { applyWithdrawal, listMyWithdrawals } from "../lib/withdrawal-api";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -57,6 +59,11 @@ export default function Dashboard() {
   const [appointmentActionId, setAppointmentActionId] = createSignal<number | null>(null);
   const [appointmentMsg, setAppointmentMsg] = createSignal("");
   const [appointmentError, setAppointmentError] = createSignal("");
+  const [withdrawalAmount, setWithdrawalAmount] = createSignal("");
+  const [withdrawalAccount, setWithdrawalAccount] = createSignal("");
+  const [submittingWithdrawal, setSubmittingWithdrawal] = createSignal(false);
+  const [withdrawalMsg, setWithdrawalMsg] = createSignal("");
+  const [withdrawalError, setWithdrawalError] = createSignal("");
 
   const me = createQuery(() => ({
     queryKey: ["me"] as const,
@@ -78,6 +85,12 @@ export default function Dashboard() {
   const creatorAppointments = createQuery(() => ({
     queryKey: ["creator-appointments"] as const,
     queryFn: listCreatorAppointments,
+    enabled: isAuthenticated()
+  }));
+
+  const withdrawals = createQuery(() => ({
+    queryKey: ["withdrawals"] as const,
+    queryFn: listMyWithdrawals,
     enabled: isAuthenticated()
   }));
   const myProfile = createMemo(() =>
@@ -206,6 +219,32 @@ export default function Dashboard() {
     }
   }
 
+  async function submitWithdrawal() {
+    const amount = withdrawalAmount().trim();
+    if (!amount || Number(amount) <= 0) {
+      setWithdrawalError("请输入大于 0 的提现金额。");
+      return;
+    }
+    setSubmittingWithdrawal(true);
+    setWithdrawalMsg("");
+    setWithdrawalError("");
+    try {
+      const account = withdrawalAccount().trim();
+      await applyWithdrawal(amount, account ? { account } : undefined);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["withdrawals"] }),
+        queryClient.invalidateQueries({ queryKey: ["me"] })
+      ]);
+      setWithdrawalAmount("");
+      setWithdrawalAccount("");
+      setWithdrawalMsg("提现申请已提交，等待管理员审核。");
+    } catch (err) {
+      setWithdrawalError(err instanceof Error ? err.message : "提现申请失败，请稍后重试。");
+    } finally {
+      setSubmittingWithdrawal(false);
+    }
+  }
+
   return (
     <div class="min-h-screen bg-ink text-paper">
       <header class="sticky top-0 z-40 border-b border-white/8 bg-ink/85 backdrop-blur-xl">
@@ -265,6 +304,10 @@ export default function Dashboard() {
           </div>
           <div class="flex items-center gap-3">
             <div class="rounded-lg border border-line bg-surface px-4 py-3">
+              <p class="text-xs text-muted">账户余额</p>
+              <p class="mt-1 text-xl font-medium text-primary">¥{me.data?.balance ?? "0.00"}</p>
+            </div>
+            <div class="rounded-lg border border-line bg-surface px-4 py-3">
               <p class="text-xs text-muted">已上传作品</p>
               <p class="mt-1 text-xl font-medium text-amber">{works.data?.length ?? 0}</p>
             </div>
@@ -287,6 +330,10 @@ export default function Dashboard() {
                 <div class="flex items-center justify-between gap-4">
                   <span class="text-muted">手机</span>
                   <span class="truncate text-paper">{me.data?.phone ?? "未设置"}</span>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-muted">余额</span>
+                  <span class="text-paper">¥{me.data?.balance ?? "0.00"}</span>
                 </div>
                 <div class="flex items-center justify-between gap-4">
                   <span class="text-muted">角色</span>
@@ -514,6 +561,106 @@ export default function Dashboard() {
           </Card>
         </section>
 
+        <section class="mt-10 grid gap-6 lg:grid-cols-[420px_1fr]">
+          <Card>
+            <CardHeader>
+              <CardTitle class="flex items-center gap-2">
+                <Wallet size={18} class="text-primary" />
+                余额提现
+              </CardTitle>
+            </CardHeader>
+            <CardContent class="space-y-4">
+              <div class="rounded-lg border border-line bg-secondary p-4">
+                <p class="text-xs text-muted">可提现余额</p>
+                <p class="mt-2 font-display text-3xl font-semibold text-primary">
+                  ¥{me.data?.balance ?? "0.00"}
+                </p>
+              </div>
+              <label class="block">
+                <span class="mb-2 block text-sm text-muted">提现金额</span>
+                <Input
+                  value={withdrawalAmount()}
+                  onInput={(event) => setWithdrawalAmount(event.currentTarget.value)}
+                  placeholder="例如：500.00"
+                  inputMode="decimal"
+                />
+              </label>
+              <label class="block">
+                <span class="mb-2 block text-sm text-muted">收款账户</span>
+                <Input
+                  value={withdrawalAccount()}
+                  onInput={(event) => setWithdrawalAccount(event.currentTarget.value)}
+                  placeholder="支付宝账号或银行卡号"
+                />
+              </label>
+              <Show when={withdrawalMsg()}>
+                <p class="rounded-lg border border-teal/30 bg-teal/10 px-3 py-2 text-sm text-teal">
+                  {withdrawalMsg()}
+                </p>
+              </Show>
+              <Show when={withdrawalError()}>
+                <p class="rounded-lg border border-coral/30 bg-coral/10 px-3 py-2 text-sm text-coral">
+                  {withdrawalError()}
+                </p>
+              </Show>
+              <Button onClick={submitWithdrawal} disabled={submittingWithdrawal()}>
+                {submittingWithdrawal() ? "提交中" : "申请提现"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>提现记录</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Show when={withdrawals.isPending}>
+                <div class="grid min-h-32 place-items-center rounded-lg border border-dashed border-line text-sm text-muted">
+                  正在加载提现记录...
+                </div>
+              </Show>
+              <Show when={withdrawals.isError}>
+                <div class="grid min-h-32 place-items-center rounded-lg border border-dashed border-line px-5 text-center text-sm text-muted">
+                  暂无创作者提现记录，成为创作者后即可申请提现。
+                </div>
+              </Show>
+              <Show when={withdrawals.data}>
+                <Show
+                  when={(withdrawals.data?.length ?? 0) > 0}
+                  fallback={
+                    <div class="grid min-h-32 place-items-center rounded-lg border border-dashed border-line text-sm text-muted">
+                      还没有提现记录
+                    </div>
+                  }
+                >
+                  <div class="space-y-3">
+                    <For each={withdrawals.data ?? []}>
+                      {(item) => (
+                        <div class="flex flex-col gap-3 rounded-lg border border-line bg-secondary p-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <div class="flex flex-wrap items-center gap-3">
+                              <span class="font-medium">¥{item.amount}</span>
+                              <WithdrawalStatusBadge status={item.status} />
+                            </div>
+                            <p class="mt-1 text-xs text-muted">
+                              {new Date(item.created_at).toLocaleString("zh-CN")}
+                              {item.review_note ? ` · ${item.review_note}` : ""}
+                            </p>
+                          </div>
+                          <span class="text-xs text-muted">
+                            {item.completed_at
+                              ? `完成于 ${new Date(item.completed_at).toLocaleDateString("zh-CN")}`
+                              : "等待审核"}
+                          </span>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </Show>
+              </Show>
+            </CardContent>
+          </Card>
+        </section>
         <section class="mt-10">
           <div class="mb-6 flex items-center gap-3">
             <CalendarClock size={20} class="text-amber" />
@@ -658,5 +805,17 @@ function StatusBadge(props: { status: string }) {
       : props.status === "completed"
         ? "accent"
         : "default";
+  return <Badge variant={variant}>{labels[props.status] ?? props.status}</Badge>;
+}
+
+function WithdrawalStatusBadge(props: { status: string }) {
+  const labels: Record<string, string> = {
+    pending: "待审核",
+    approved: "已通过",
+    completed: "已打款",
+    rejected: "已拒绝"
+  };
+  const variant: "default" | "accent" | "destructive" =
+    props.status === "rejected" ? "destructive" : props.status === "completed" ? "accent" : "default";
   return <Badge variant={variant}>{labels[props.status] ?? props.status}</Badge>;
 }

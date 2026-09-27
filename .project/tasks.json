@@ -74,6 +74,18 @@
       "status": "done",
       "started": "2026-09-27 15:45",
       "finished": "2026-09-27 15:45"
+    },
+    {
+      "name": "Creator withdrawal application and admin review",
+      "status": "done",
+      "started": "2026-09-27 16:22",
+      "finished": "2026-09-27 16:23"
+    },
+    {
+      "name": "Withdrawal browser E2E and release commit",
+      "status": "done",
+      "started": "2026-09-27 16:31",
+      "finished": "2026-09-27 16:31"
     }
   ]
 }

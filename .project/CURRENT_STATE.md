@@ -12,18 +12,20 @@
 - [x] Seed realistic creators/services/works with real photos
 - [x] Three role interfaces: admin, creator, customer
 - [x] Payment, settlement, reviews, and full-flow E2E
+- [x] Creator withdrawal application and admin review
+- [x] Withdrawal browser E2E and release commit
 
 ## Recent Changes
+- web/scripts/test_runtime.py
+- web/scripts/withdrawal_e2e.py
+- backend/crates/api/src/routes/mod.rs
+- backend/crates/services/tests/withdrawal_flow.rs
+- web/src/pages/admin.tsx
+- backend/crates/db/src/migrations/m20260928_000006_create_withdrawals.rs
+- backend/crates/api/src/routes/withdrawals.rs
+- backend/crates/services/src/withdrawal_service.rs
 - web/scripts/e2e_flow.py
 - web/src/pages/dashboard.tsx
-- web/src/lib/reviews-api.ts
-- web/src/lib/payment-api.ts
-- backend/crates/api/src/routes/appointments.rs
-- backend/crates/api/src/routes/reviews.rs
-- backend/crates/api/src/routes/payments.rs
-- backend/crates/services/src/review_service.rs
-- backend/crates/services/src/payment_service.rs
-- web/src/lib/admin-api.ts
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
@@ -31,4 +33,4 @@
 - Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents
 
 ## Next Step
-- Isolate smoke/e2e tests to a test DB; reviews shown on creator profile
+- Commit verified withdrawal E2E, creator review display, and isolated test runtime changes

@@ -1,3 +1,4 @@
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
@@ -23,6 +24,7 @@ pub struct UserDto {
     pub avatar_url: Option<String>,
     pub email: Option<String>,
     pub phone: Option<String>,
+    pub balance: Decimal,
     pub role: String,
     pub status: String,
 }

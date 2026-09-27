@@ -112,3 +112,11 @@
 
 *2026-09-27 15:45*
 
+## ADR-015: Withdrawal funds freeze on application
+
+**Reason**: Prevents creators from spending the same balance while an admin review is pending; rejection restores the frozen amount atomically
+
+**Impact**: withdrawals are pending/completed/rejected; approval records completion, rejection refunds to user balance
+
+*2026-09-27 16:23*
+

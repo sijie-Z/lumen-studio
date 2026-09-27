@@ -176,6 +176,7 @@ fn to_user_dto(user: UserModel) -> UserDto {
         avatar_url: user.avatar_url,
         email: user.email,
         phone: user.phone,
+        balance: user.balance,
         role: user.role,
         status: user.status,
     }

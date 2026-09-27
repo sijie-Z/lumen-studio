@@ -65,3 +65,17 @@
 - **Summary**: Payment, settlement, reviews, full-flow E2E
 - **Next**: Complete: Payment, settlement, reviews, and full-flow E2E
 
+### [2026-09-27 16:23] main — Creator withdrawal application and admin review
+
+- **Task**: Creator withdrawal application and admin review
+- **Branch**: main
+- **Summary**: Implemented creator withdrawal application, balance freeze, admin approval/rejection with refund, API routes, withdrawal UI, UserDto balance, and service/API tests. cargo check -p api, cargo test -p services, cargo test -p api, and pnpm build all passed.
+- **Next**: Run browser E2E for creator withdrawal apply and admin approve/reject against a logged-in session
+
+### [2026-09-27 16:31] main — Withdrawal browser E2E and release commit
+
+- **Task**: Withdrawal browser E2E and release commit
+- **Branch**: main
+- **Summary**: Added isolated browser E2E for withdrawal apply/approve/reject with SHA-256 main DB isolation checks. All four verification commands passed. Ready to commit .project, backend/Cargo.lock, backend/crates, and web.
+- **Next**: Commit verified withdrawal E2E, creator review display, and isolated test runtime changes
+

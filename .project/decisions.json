@@ -83,6 +83,12 @@
       "reason": "Balance payment moves appointment to confirmed; creator completion triggers settlement with platform 10% commission",
       "impact": "Escrow recorded in payments table; incomes verified in full-flow E2E",
       "date": "2026-09-27 15:45"
+    },
+    {
+      "title": "Withdrawal funds freeze on application",
+      "reason": "Prevents creators from spending the same balance while an admin review is pending; rejection restores the frozen amount atomically",
+      "impact": "withdrawals are pending/completed/rejected; approval records completion, rejection refunds to user balance",
+      "date": "2026-09-27 16:23"
     }
   ]
 }

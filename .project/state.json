@@ -1,22 +1,22 @@
 {
   "recent_files": [
+    "web/scripts/test_runtime.py",
+    "web/scripts/withdrawal_e2e.py",
+    "backend/crates/api/src/routes/mod.rs",
+    "backend/crates/services/tests/withdrawal_flow.rs",
+    "web/src/pages/admin.tsx",
+    "backend/crates/db/src/migrations/m20260928_000006_create_withdrawals.rs",
+    "backend/crates/api/src/routes/withdrawals.rs",
+    "backend/crates/services/src/withdrawal_service.rs",
     "web/scripts/e2e_flow.py",
-    "web/src/pages/dashboard.tsx",
-    "web/src/lib/reviews-api.ts",
-    "web/src/lib/payment-api.ts",
-    "backend/crates/api/src/routes/appointments.rs",
-    "backend/crates/api/src/routes/reviews.rs",
-    "backend/crates/api/src/routes/payments.rs",
-    "backend/crates/services/src/review_service.rs",
-    "backend/crates/services/src/payment_service.rs",
-    "web/src/lib/admin-api.ts"
+    "web/src/pages/dashboard.tsx"
   ],
   "known_issues": [
     "Rust MSVC linker missing — need VS Build Tools or GNU toolchain",
     "smoke test still writes to main photography.db",
     "Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents"
   ],
-  "next_step": "Isolate smoke/e2e tests to a test DB; reviews shown on creator profile",
+  "next_step": "Commit verified withdrawal E2E, creator review display, and isolated test runtime changes",
   "branch": "main",
   "active_work": [
     {
@@ -53,6 +53,14 @@
     },
     {
       "name": "Payment, settlement, reviews, and full-flow E2E",
+      "status": "done"
+    },
+    {
+      "name": "Creator withdrawal application and admin review",
+      "status": "done"
+    },
+    {
+      "name": "Withdrawal browser E2E and release commit",
       "status": "done"
     }
   ]

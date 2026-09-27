@@ -7,6 +7,7 @@ use services::creator_service::CreatorService;
 use services::payment_service::PaymentService;
 use services::review_service::ReviewService;
 use services::service_catalog::ServiceCatalog;
+use services::withdrawal_service::WithdrawalService;
 use services::work_service::WorkService;
 
 #[derive(Clone)]
@@ -21,4 +22,5 @@ pub struct AppState {
     pub payments: PaymentService,
     pub reviews: ReviewService,
     pub admin: AdminService,
+    pub withdrawals: WithdrawalService,
 }

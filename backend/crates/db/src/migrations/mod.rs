@@ -3,6 +3,7 @@ mod m20260915_000002_create_works;
 mod m20260916_000003_create_marketplace;
 mod m20260916_000004_add_work_category;
 mod m20260918_000005_create_payments_reviews;
+mod m20260928_000006_create_withdrawals;
 
 use sea_orm_migration::prelude::*;
 
@@ -17,6 +18,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260916_000003_create_marketplace::Migration),
             Box::new(m20260916_000004_add_work_category::Migration),
             Box::new(m20260918_000005_create_payments_reviews::Migration),
+            Box::new(m20260928_000006_create_withdrawals::Migration),
         ]
     }
 }

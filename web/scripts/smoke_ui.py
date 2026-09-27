@@ -2,6 +2,11 @@
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
+from test_runtime import (
+    main_database_snapshot,
+    managed_test_environment,
+    print_main_database_comparison,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -56,6 +61,8 @@ def main() -> None:
         page.locator('input[placeholder="name@example.com"]').fill(username)
         page.locator('input[placeholder="至少 8 位"]').fill("password123")
         page.get_by_role("button", name="登录", exact=True).click()
+        page.wait_for_url("**/account", timeout=10000)
+        page.goto("http://127.0.0.1:5173/dashboard", wait_until="domcontentloaded")
         page.wait_for_selector("text=我的作品库", timeout=10000)
 
         page.locator('input[placeholder="一句话介绍你的风格"]').fill("测试摄影师")
@@ -78,7 +85,7 @@ def main() -> None:
         page.wait_for_selector("text=预约已提交", timeout=10000)
 
         page.goto("http://127.0.0.1:5173/dashboard", wait_until="domcontentloaded")
-        page.wait_for_selector("text=待确认", timeout=10000)
+        page.wait_for_selector("text=待支付", timeout=10000)
 
         page.locator('input[type="file"]').set_input_files(
             str(ROOT / "public/demo/work-1.jpg")
@@ -130,4 +137,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    before = main_database_snapshot()
+    with managed_test_environment():
+        main()
+    after = main_database_snapshot()
+    print_main_database_comparison(before, after)
