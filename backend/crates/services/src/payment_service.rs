@@ -6,8 +6,8 @@ use db::entities::{
 };
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
-    QueryOrder, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, DatabaseTransaction, EntityTrait,
+    IntoActiveModel, QueryFilter, QueryOrder, Set, TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
 
@@ -25,6 +25,7 @@ pub struct PaymentDto {
     pub payment_channel: Option<String>,
     pub refund_amount: Option<Decimal>,
     pub refund_reason: Option<String>,
+    pub idempotency_key: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -38,10 +39,23 @@ impl PaymentService {
         Self { db }
     }
 
-    pub async fn recharge(&self, user_id: i32, amount: Decimal) -> Result<PaymentDto, AppError> {
+    pub async fn recharge(
+        &self,
+        user_id: i32,
+        amount: Decimal,
+        idempotency_key: Option<String>,
+    ) -> Result<PaymentDto, AppError> {
         let amount = positive_money(amount, "recharge amount")?;
+        let idempotency_key = normalize_idempotency_key(idempotency_key);
         let now = Utc::now();
         let txn = self.db.begin().await.map_err(AppError::from_anyhow)?;
+        if let Some(existing) =
+            find_idempotent_payment(&txn, idempotency_key.as_deref(), user_id, "recharge", None)
+                .await?
+        {
+            txn.commit().await.map_err(AppError::from_anyhow)?;
+            return Ok(existing);
+        }
 
         let user = user_entity::Entity::find_by_id(user_id)
             .one(&txn)
@@ -64,6 +78,7 @@ impl PaymentService {
             method: Set(Some("balance".into())),
             status: Set("success".into()),
             payment_type: Set("recharge".into()),
+            idempotency_key: Set(idempotency_key),
             created_at: Set(now),
             ..Default::default()
         }
@@ -80,9 +95,23 @@ impl PaymentService {
         user_id: i32,
         appointment_id: i32,
         method: String,
+        idempotency_key: Option<String>,
     ) -> Result<PaymentDto, AppError> {
+        let idempotency_key = normalize_idempotency_key(idempotency_key);
         let now = Utc::now();
         let txn = self.db.begin().await.map_err(AppError::from_anyhow)?;
+        if let Some(existing) = find_idempotent_payment(
+            &txn,
+            idempotency_key.as_deref(),
+            user_id,
+            "appointment",
+            Some(appointment_id),
+        )
+        .await?
+        {
+            txn.commit().await.map_err(AppError::from_anyhow)?;
+            return Ok(existing);
+        }
 
         let appointment = appointment_entity::Entity::find_by_id(appointment_id)
             .one(&txn)
@@ -152,6 +181,7 @@ impl PaymentService {
             status: Set("success".into()),
             payment_type: Set("appointment".into()),
             payment_channel: Set(Some("escrow".into())),
+            idempotency_key: Set(idempotency_key),
             created_at: Set(now),
             ..Default::default()
         }
@@ -164,11 +194,20 @@ impl PaymentService {
     }
 
     pub async fn settle(&self, appointment_id: i32) -> Result<(), AppError> {
-        let now = Utc::now();
         let txn = self.db.begin().await.map_err(AppError::from_anyhow)?;
+        self.settle_in_transaction(&txn, appointment_id).await?;
+        txn.commit().await.map_err(AppError::from_anyhow)?;
+        Ok(())
+    }
 
+    pub(crate) async fn settle_in_transaction(
+        &self,
+        txn: &DatabaseTransaction,
+        appointment_id: i32,
+    ) -> Result<(), AppError> {
+        let now = Utc::now();
         let appointment = appointment_entity::Entity::find_by_id(appointment_id)
-            .one(&txn)
+            .one(txn)
             .await
             .map_err(AppError::from_anyhow)?
             .ok_or_else(|| AppError::NotFound("appointment not found".into()))?;
@@ -185,7 +224,7 @@ impl PaymentService {
                     .eq(appointment_id)
                     .and(payment_entity::Column::PaymentType.eq("settlement")),
             )
-            .one(&txn)
+            .one(txn)
             .await
             .map_err(AppError::from_anyhow)?;
         if already_settled.is_some() {
@@ -200,7 +239,7 @@ impl PaymentService {
                     .and(payment_entity::Column::Status.eq("success")),
             )
             .order_by_desc(payment_entity::Column::CreatedAt)
-            .one(&txn)
+            .one(txn)
             .await
             .map_err(AppError::from_anyhow)?
             .ok_or_else(|| AppError::BadRequest("appointment has no successful payment".into()))?;
@@ -215,14 +254,14 @@ impl PaymentService {
         }
 
         let creator = creator_entity::Entity::find_by_id(appointment.creator_id)
-            .one(&txn)
+            .one(txn)
             .await
             .map_err(AppError::from_anyhow)?
             .ok_or_else(|| AppError::NotFound("creator profile not found".into()))?;
         let creator_user_id = creator.user_id;
 
         let creator_user = user_entity::Entity::find_by_id(creator_user_id)
-            .one(&txn)
+            .one(txn)
             .await
             .map_err(AppError::from_anyhow)?
             .ok_or_else(|| AppError::NotFound("creator user not found".into()))?;
@@ -232,7 +271,7 @@ impl PaymentService {
         active_user.balance = Set(creator_balance);
         active_user.updated_at = Set(now);
         active_user
-            .update(&txn)
+            .update(txn)
             .await
             .map_err(AppError::from_anyhow)?;
 
@@ -241,7 +280,7 @@ impl PaymentService {
         active_creator.total_income = Set(creator_income);
         active_creator.updated_at = Set(now);
         active_creator
-            .update(&txn)
+            .update(txn)
             .await
             .map_err(AppError::from_anyhow)?;
 
@@ -252,14 +291,14 @@ impl PaymentService {
             status: Set("success".into()),
             payment_type: Set("settlement".into()),
             payment_channel: Set(Some("settlement".into())),
+            idempotency_key: Set(Some(format!("settlement:{appointment_id}"))),
             created_at: Set(now),
             ..Default::default()
         }
-        .insert(&txn)
+        .insert(txn)
         .await
         .map_err(AppError::from_anyhow)?;
 
-        txn.commit().await.map_err(AppError::from_anyhow)?;
         Ok(())
     }
 
@@ -272,6 +311,45 @@ impl PaymentService {
             .map_err(AppError::from_anyhow)?;
         Ok(payments.into_iter().map(to_dto).collect())
     }
+}
+
+fn normalize_idempotency_key(value: Option<String>) -> Option<String> {
+    value
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+
+async fn find_idempotent_payment(
+    txn: &DatabaseTransaction,
+    idempotency_key: Option<&str>,
+    user_id: i32,
+    payment_type: &str,
+    appointment_id: Option<i32>,
+) -> Result<Option<PaymentDto>, AppError> {
+    let Some(idempotency_key) = idempotency_key else {
+        return Ok(None);
+    };
+
+    let existing = payment_entity::Entity::find()
+        .filter(payment_entity::Column::IdempotencyKey.eq(idempotency_key))
+        .one(txn)
+        .await
+        .map_err(AppError::from_anyhow)?;
+
+    let Some(existing) = existing else {
+        return Ok(None);
+    };
+
+    if existing.user_id != user_id
+        || existing.payment_type != payment_type
+        || existing.appointment_id != appointment_id
+    {
+        return Err(AppError::Conflict(
+            "idempotency key already used for a different payment".into(),
+        ));
+    }
+
+    Ok(Some(to_dto(existing)))
 }
 
 fn positive_money(amount: Decimal, label: &str) -> Result<app_core::Money, AppError> {
@@ -297,6 +375,7 @@ fn to_dto(model: payment_entity::Model) -> PaymentDto {
         payment_channel: model.payment_channel,
         refund_amount: model.refund_amount,
         refund_reason: model.refund_reason,
+        idempotency_key: model.idempotency_key,
         created_at: model.created_at,
     }
 }

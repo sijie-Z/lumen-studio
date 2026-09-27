@@ -91,7 +91,6 @@ async fn transition(
         .transition(claims.sub, creator_id, id, target.clone())
         .await?;
     if target == "completed" {
-        state.payments.settle(id).await?;
         if let Err(error) = state
             .notifications
             .create(

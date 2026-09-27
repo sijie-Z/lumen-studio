@@ -17,5 +17,6 @@ pub struct Payment {
     pub payment_channel: Option<String>,
     pub refund_amount: Option<Decimal>,
     pub refund_reason: Option<String>,
+    pub idempotency_key: Option<String>,
     pub created_at: DateTime<Utc>,
 }

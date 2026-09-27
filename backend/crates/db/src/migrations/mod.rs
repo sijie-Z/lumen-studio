@@ -5,6 +5,7 @@ mod m20260916_000004_add_work_category;
 mod m20260918_000005_create_payments_reviews;
 mod m20260928_000006_create_withdrawals;
 mod m20260928_000007_create_notifications;
+mod m20260928_000008_payment_consistency;
 
 use sea_orm_migration::prelude::*;
 
@@ -21,6 +22,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260918_000005_create_payments_reviews::Migration),
             Box::new(m20260928_000006_create_withdrawals::Migration),
             Box::new(m20260928_000007_create_notifications::Migration),
+            Box::new(m20260928_000008_payment_consistency::Migration),
         ]
     }
 }

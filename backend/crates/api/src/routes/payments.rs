@@ -13,11 +13,13 @@ use services::payment_service::PaymentDto;
 #[derive(Debug, Deserialize)]
 struct RechargeBody {
     amount: Decimal,
+    idempotency_key: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 struct PayAppointmentBody {
     method: Option<String>,
+    idempotency_key: Option<String>,
 }
 
 pub fn router() -> Router<AppState> {
@@ -40,7 +42,10 @@ async fn recharge(
     AuthUser(claims): AuthUser,
     Json(body): Json<RechargeBody>,
 ) -> Result<Json<ApiResponse<PaymentDto>>, AppError> {
-    let payment = state.payments.recharge(claims.sub, body.amount).await?;
+    let payment = state
+        .payments
+        .recharge(claims.sub, body.amount, body.idempotency_key)
+        .await?;
     Ok(Json(ApiResponse::success(payment)))
 }
 
@@ -53,7 +58,7 @@ async fn pay_appointment(
     let method = body.method.unwrap_or_else(|| "balance".into());
     let payment = state
         .payments
-        .pay_appointment(claims.sub, id, method)
+        .pay_appointment(claims.sub, id, method, body.idempotency_key)
         .await?;
     if let Err(error) = state
         .notifications

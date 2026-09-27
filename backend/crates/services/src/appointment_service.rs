@@ -1,10 +1,15 @@
+use crate::payment_service::PaymentService;
 use chrono::{DateTime, Utc};
 use common::AppError;
-use db::entities::{appointment as appt_entity, service as service_entity, AppointmentModel};
+use db::entities::{
+    appointment as appt_entity, payment as payment_entity, service as service_entity,
+    user as user_entity, AppointmentModel,
+};
 use rust_decimal::Decimal;
+use sea_orm::sea_query::Expr;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
-    QueryOrder, Set,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, DbBackend, EntityTrait,
+    IntoActiveModel, QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
 
@@ -49,13 +54,26 @@ impl AppointmentService {
         user_id: i32,
         input: CreateAppointmentInput,
     ) -> Result<AppointmentDto, AppError> {
+        let txn = self.db.begin().await.map_err(AppError::from_anyhow)?;
+
         let service = service_entity::Entity::find_by_id(input.service_id)
-            .one(&self.db)
+            .one(&txn)
             .await
             .map_err(AppError::from_anyhow)?
             .ok_or_else(|| AppError::NotFound("service not found".into()))?;
         if !service.is_active {
             return Err(AppError::BadRequest("service is not available".into()));
+        }
+
+        // PostgreSQL needs an explicit row lock to serialize bookings for one creator.
+        // SQLite serializes writers at the database level, so the transaction is enough.
+        if txn.get_database_backend() == DbBackend::Postgres {
+            db::entities::creator_profile::Entity::find_by_id(service.creator_id)
+                .lock_exclusive()
+                .one(&txn)
+                .await
+                .map_err(AppError::from_anyhow)?
+                .ok_or_else(|| AppError::NotFound("creator profile not found".into()))?;
         }
 
         let slot = app_core::TimeSlot::new(input.start_time, input.end_time)
@@ -69,7 +87,7 @@ impl AppointmentService {
                     .and(appt_entity::Column::EndTime.gt(input.start_time))
                     .and(appt_entity::Column::Status.is_not_in(["cancelled", "refunded"])),
             )
-            .one(&self.db)
+            .one(&txn)
             .await
             .map_err(AppError::from_anyhow)?;
         if conflict.is_some() {
@@ -92,12 +110,14 @@ impl AppointmentService {
             updated_at: Set(now),
             ..Default::default()
         }
-        .insert(&self.db)
+        .insert(&txn)
         .await
         .map_err(AppError::from_anyhow)?;
 
-        self.bump_counts(service.id, service.creator_id).await?;
+        self.bump_counts_in_transaction(&txn, service.id, service.creator_id)
+            .await?;
 
+        txn.commit().await.map_err(AppError::from_anyhow)?;
         Ok(to_dto(model))
     }
 
@@ -128,8 +148,10 @@ impl AppointmentService {
         appointment_id: i32,
         target: String,
     ) -> Result<AppointmentDto, AppError> {
+        let txn = self.db.begin().await.map_err(AppError::from_anyhow)?;
+
         let model = appt_entity::Entity::find_by_id(appointment_id)
-            .one(&self.db)
+            .one(&txn)
             .await
             .map_err(AppError::from_anyhow)?
             .ok_or_else(|| AppError::NotFound("appointment not found".into()))?;
@@ -143,10 +165,36 @@ impl AppointmentService {
         }
 
         let current = status_from_str(&model.status)?;
-        let next = status_from_str(&target)?;
+        let requested = status_from_str(&target)?;
+        if requested == app_core::AppointmentStatus::Refunded {
+            return Err(AppError::BadRequest(
+                "refunded is only produced by cancelling a paid appointment".into(),
+            ));
+        }
+
+        let paid_payment = if requested == app_core::AppointmentStatus::Cancelled {
+            payment_entity::Entity::find()
+                .filter(
+                    payment_entity::Column::AppointmentId
+                        .eq(appointment_id)
+                        .and(payment_entity::Column::PaymentType.eq("appointment"))
+                        .and(payment_entity::Column::Status.eq("success")),
+                )
+                .one(&txn)
+                .await
+                .map_err(AppError::from_anyhow)?
+        } else {
+            None
+        };
+        let next = if requested == app_core::AppointmentStatus::Cancelled && paid_payment.is_some()
+        {
+            app_core::AppointmentStatus::Refunded
+        } else {
+            requested.clone()
+        };
         if !current.can_transition_to(&next) {
             return Err(AppError::BadRequest(format!(
-                "invalid transition: {current:?} -> {target}"
+                "invalid transition: {current:?} -> {next:?}"
             )));
         }
 
@@ -158,42 +206,96 @@ impl AppointmentService {
             ));
         }
 
+        if let Some(payment) = paid_payment {
+            self.refund_payment_in_transaction(&txn, &model, payment)
+                .await?;
+        }
+
         let mut active = model.into_active_model();
-        active.status = Set(target);
+        active.status = Set(next.as_str().to_string());
         active.updated_at = Set(Utc::now());
-        let updated = active
-            .update(&self.db)
-            .await
-            .map_err(AppError::from_anyhow)?;
+        let updated = active.update(&txn).await.map_err(AppError::from_anyhow)?;
+
+        if requested == app_core::AppointmentStatus::Completed {
+            PaymentService::new(self.db.clone())
+                .settle_in_transaction(&txn, appointment_id)
+                .await?;
+        }
+
+        txn.commit().await.map_err(AppError::from_anyhow)?;
         Ok(to_dto(updated))
     }
 
-    async fn bump_counts(&self, service_id: i32, creator_id: i32) -> Result<(), AppError> {
+    async fn refund_payment_in_transaction(
+        &self,
+        txn: &sea_orm::DatabaseTransaction,
+        appointment: &AppointmentModel,
+        payment: payment_entity::Model,
+    ) -> Result<(), AppError> {
+        let refund_amount = app_core::Money::new(payment.amount)
+            .map_err(|error| AppError::BadRequest(error.to_string()))?;
+        let now = Utc::now();
+
+        let balance_update = user_entity::Entity::update_many()
+            .col_expr(
+                user_entity::Column::Balance,
+                Expr::col(user_entity::Column::Balance).add(refund_amount.amount()),
+            )
+            .col_expr(user_entity::Column::UpdatedAt, Expr::value(now))
+            .filter(user_entity::Column::Id.eq(payment.user_id))
+            .exec(txn)
+            .await
+            .map_err(AppError::from_anyhow)?;
+        if balance_update.rows_affected != 1 {
+            return Err(AppError::NotFound("appointment customer not found".into()));
+        }
+
+        payment_entity::ActiveModel {
+            appointment_id: Set(Some(appointment.id)),
+            user_id: Set(payment.user_id),
+            amount: Set(refund_amount.amount()),
+            method: Set(payment.method),
+            status: Set("success".into()),
+            payment_type: Set("refund".into()),
+            payment_channel: Set(Some("refund".into())),
+            refund_amount: Set(Some(refund_amount.amount())),
+            refund_reason: Set(Some("appointment cancelled".into())),
+            idempotency_key: Set(Some(format!("refund:{}", appointment.id))),
+            created_at: Set(now),
+            ..Default::default()
+        }
+        .insert(txn)
+        .await
+        .map_err(AppError::from_anyhow)?;
+
+        Ok(())
+    }
+
+    async fn bump_counts_in_transaction(
+        &self,
+        txn: &sea_orm::DatabaseTransaction,
+        service_id: i32,
+        creator_id: i32,
+    ) -> Result<(), AppError> {
         if let Some(service) = service_entity::Entity::find_by_id(service_id)
-            .one(&self.db)
+            .one(txn)
             .await
             .map_err(AppError::from_anyhow)?
         {
             let count = service.appointments_count;
             let mut active = service.into_active_model();
             active.appointments_count = Set(count + 1);
-            active
-                .update(&self.db)
-                .await
-                .map_err(AppError::from_anyhow)?;
+            active.update(txn).await.map_err(AppError::from_anyhow)?;
         }
         if let Some(profile) = db::entities::creator_profile::Entity::find_by_id(creator_id)
-            .one(&self.db)
+            .one(txn)
             .await
             .map_err(AppError::from_anyhow)?
         {
             let appointments = profile.total_appointments;
             let mut active = profile.into_active_model();
             active.total_appointments = Set(appointments + 1);
-            active
-                .update(&self.db)
-                .await
-                .map_err(AppError::from_anyhow)?;
+            active.update(txn).await.map_err(AppError::from_anyhow)?;
         }
         Ok(())
     }

@@ -480,4 +480,55 @@ mod tests {
             .unwrap();
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
+
+    #[tokio::test]
+    async fn recharge_idempotency_key_returns_original_payment() {
+        let (app, db) = test_app_with_db().await;
+        let auth = AuthService::new(db.clone(), "test-secret", 900, 86_400);
+        let user = auth
+            .register(RegisterInput {
+                username: "idempotent_recharge".into(),
+                password: "password123".into(),
+                email: None,
+                phone: None,
+                nickname: Some("Idempotent Recharge".into()),
+            })
+            .await
+            .unwrap();
+        let login = auth
+            .login(LoginInput {
+                account: "idempotent_recharge".into(),
+                password: "password123".into(),
+            })
+            .await
+            .unwrap();
+
+        let request = || {
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/payments/recharge")
+                .header("authorization", format!("Bearer {}", login.access_token))
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    r#"{"amount":"100.00","idempotency_key":"api-recharge-once"}"#,
+                ))
+                .unwrap()
+        };
+
+        let first = app.clone().oneshot(request()).await.unwrap();
+        assert_eq!(first.status(), StatusCode::OK);
+        let first = response_json(first).await;
+
+        let second = app.oneshot(request()).await.unwrap();
+        assert_eq!(second.status(), StatusCode::OK);
+        let second = response_json(second).await;
+
+        assert_eq!(first["data"]["id"], second["data"]["id"]);
+        let user = user_entity::Entity::find_by_id(user.id)
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(user.balance, Decimal::new(100_00, 2));
+    }
 }

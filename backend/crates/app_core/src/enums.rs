@@ -21,7 +21,7 @@ impl UserStatus {
 /// 预约状态机
 /// pending → confirmed → ongoing → completed
 ///    ↓         ↓          ↓
-/// cancelled cancelled  cancelled → refunded
+/// cancelled refunded  refunded
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum AppointmentStatus {
     Pending,
@@ -52,9 +52,10 @@ impl AppointmentStatus {
                 | (Self::Pending, Self::Cancelled)
                 | (Self::Confirmed, Self::Ongoing)
                 | (Self::Confirmed, Self::Cancelled)
+                | (Self::Confirmed, Self::Refunded)
                 | (Self::Ongoing, Self::Completed)
                 | (Self::Ongoing, Self::Cancelled)
-                | (Self::Cancelled, Self::Refunded)
+                | (Self::Ongoing, Self::Refunded)
         )
     }
 }

@@ -117,12 +117,15 @@ async fn payment_settlement_and_review_flow() {
     let payments = PaymentService::new(db.clone());
     let reviews = ReviewService::new(db.clone());
 
-    let recharge = payments.recharge(2, Decimal::new(10000, 2)).await.unwrap();
+    let recharge = payments
+        .recharge(2, Decimal::new(10000, 2), None)
+        .await
+        .unwrap();
     assert_eq!(recharge.payment_type, "recharge");
     assert_eq!(recharge.status, "success");
 
     let paid = payments
-        .pay_appointment(2, 1, "balance".into())
+        .pay_appointment(2, 1, "balance".into(), None)
         .await
         .unwrap();
     assert_eq!(paid.payment_type, "appointment");
@@ -142,7 +145,7 @@ async fn payment_settlement_and_review_flow() {
         .unwrap();
     assert_eq!(appointment.status, "confirmed");
 
-    let duplicate = payments.pay_appointment(2, 1, "balance".into()).await;
+    let duplicate = payments.pay_appointment(2, 1, "balance".into(), None).await;
     assert!(matches!(duplicate, Err(AppError::Conflict(_))));
 
     let mut active = appointment.into_active_model();
