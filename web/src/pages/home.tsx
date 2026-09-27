@@ -15,7 +15,6 @@ import {
 import { createMemo } from "solid-js";
 import { listWorks } from "../lib/works-api";
 import SiteFooter from "../components/layout/site-footer";
-import SiteHeader from "../components/layout/site-header";
 import Assistant from "../components/ai/assistant";
 import { StepGuide, type GuideStep } from "../components/onboarding/step-guide";
 import { isAuthenticated } from "../lib/auth-api";
@@ -61,8 +60,6 @@ export default function Home() {
 
   return (
     <div class="min-h-screen bg-ink text-paper">
-      <SiteHeader />
-
       <main>
         <section
           id="top"

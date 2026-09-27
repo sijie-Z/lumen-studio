@@ -6,8 +6,7 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
-import { Skeleton } from "../components/ui/skeleton";
-import SiteHeader from "../components/layout/site-header";
+import { EmptyState, ErrorState, LoadingState } from "../components/ui/state";
 import { StepGuide, type GuideStep } from "../components/onboarding/step-guide";
 import { createAppointment, getService, type Service } from "../lib/marketplace-api";
 import { isAuthenticated } from "../lib/auth-api";
@@ -26,6 +25,7 @@ export default function ServiceDetail() {
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
   const [success, setSuccess] = createSignal(false);
+  const [createdAppointmentId, setCreatedAppointmentId] = createSignal<number | null>(null);
   const bookingSteps = (): GuideStep[] => [
     {
       title: "选择预约时间",
@@ -61,13 +61,14 @@ export default function ServiceDetail() {
       const start = new Date(startLocal()).toISOString();
       const durationMinutes = current.duration ?? 60;
       const end = new Date(new Date(start).getTime() + durationMinutes * 60_000).toISOString();
-      await createAppointment({
+      const appointment = await createAppointment({
         service_id: current.id,
         start_time: start,
         end_time: end,
         location: location() || undefined,
         notes: notes() || undefined
       });
+      setCreatedAppointmentId(appointment.id);
       setSuccess(true);
       await queryClient.invalidateQueries({ queryKey: ["appointments"] });
     } catch (err) {
@@ -79,7 +80,6 @@ export default function ServiceDetail() {
 
   return (
     <div class="min-h-screen bg-background text-foreground">
-      <SiteHeader />
       <main class="mx-auto max-w-5xl px-5 pt-24 pb-24 md:px-8 md:pt-28">
         <A href="/services" class="inline-flex items-center gap-2 text-sm text-muted no-underline hover:text-foreground">
           <ArrowLeft size={16} />
@@ -90,12 +90,22 @@ export default function ServiceDetail() {
           when={service.data}
           fallback={
             service.isLoading ? (
-              <div class="mt-8 space-y-4">
-                <Skeleton class="aspect-[16/9] w-full rounded-lg" />
-                <Skeleton class="h-9 w-1/2" />
-              </div>
+              <LoadingState class="mt-8" title="正在加载服务" description="正在获取预约档期和价格信息。" />
+            ) : service.isError ? (
+              <ErrorState
+                class="mt-8"
+                title="服务加载失败"
+                description="暂时无法获取服务详情，请稍后重试。"
+                onRetry={() => service.refetch()}
+              />
             ) : (
-              <div class="mt-16 text-center text-muted">服务不存在</div>
+              <EmptyState
+                class="mt-16"
+                title="服务不存在或已下线"
+                description="返回服务列表看看其他可预约项目。"
+                ctaLabel="返回服务列表"
+                href="/services"
+              />
             )
           }
         >
@@ -176,8 +186,16 @@ export default function ServiceDetail() {
                   </div>
                 )}
                 {success() && (
-                  <div class="rounded-lg border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-accent">
-                    预约已提交，创作者确认后即可锁定档期
+                  <div class="space-y-3 rounded-lg border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-accent">
+                    <p>
+                      预约 #{createdAppointmentId()} 已提交，请在客户中心完成支付后锁定档期。
+                    </p>
+                    <A
+                      href={`/account?appointment=${createdAppointmentId()}&action=pay`}
+                      class="inline-flex h-9 items-center justify-center rounded-lg bg-accent px-4 text-sm font-medium text-accent-foreground no-underline"
+                    >
+                      去支付
+                    </A>
                   </div>
                 )}
 

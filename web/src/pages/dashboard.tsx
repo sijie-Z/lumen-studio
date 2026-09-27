@@ -1,26 +1,20 @@
 import { createQuery, useQueryClient } from "@tanstack/solid-query";
-import { A, useNavigate } from "@solidjs/router";
 import {
-  Camera,
   CalendarDays,
   CloudUpload,
-  Compass,
   Image as ImageIcon,
-  LogOut,
-  ShieldCheck,
   Sparkles,
   Store,
   CalendarClock,
   Wallet,
   User
 } from "lucide-solid";
-import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import { fetchMe, isAuthenticated, uploadImage } from "../lib/auth-api";
 import { ApiError } from "../lib/api";
 import { createWork, listWorks } from "../lib/works-api";
 import {
   createService,
-  listAppointments,
   listCreatorAppointments,
   listCreators,
   listServices,
@@ -28,9 +22,7 @@ import {
   transitionAppointment,
   upsertProfile
 } from "../lib/marketplace-api";
-import { useAuthStore } from "../stores/auth";
 import Assistant from "../components/ai/assistant";
-import { NotificationBell } from "../components/layout/site-header";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -40,8 +32,6 @@ import { StepGuide, type GuideStep } from "../components/onboarding/step-guide";
 import { applyWithdrawal, listMyWithdrawals } from "../lib/withdrawal-api";
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const auth = useAuthStore();
   const queryClient = useQueryClient();
   const [selected, setSelected] = createSignal<File | null>(null);
   const [preview, setPreview] = createSignal<string | null>(null);
@@ -82,11 +72,6 @@ export default function Dashboard() {
   const creators = createQuery(() => ({ queryKey: ["creators"] as const, queryFn: listCreators }));
   const serviceTypes = createQuery(() => ({ queryKey: ["service-types"] as const, queryFn: listServiceTypes }));
   const services = createQuery(() => ({ queryKey: ["services"] as const, queryFn: listServices }));
-  const appointments = createQuery(() => ({
-    queryKey: ["appointments"] as const,
-    queryFn: listAppointments,
-    enabled: isAuthenticated()
-  }));
   const creatorAppointments = createQuery(() => ({
     queryKey: ["creator-appointments"] as const,
     queryFn: listCreatorAppointments,
@@ -135,15 +120,6 @@ export default function Dashboard() {
     return error instanceof ApiError && [403, 404].includes(error.status);
   };
 
-  createEffect(() => {
-    if (!isAuthenticated()) navigate("/login");
-    if (me.isError) navigate("/login");
-  });
-
-  createEffect(() => {
-    if (me.data) auth.setCurrentUser(me.data);
-  });
-
   function scrollToId(id: string) {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -179,11 +155,6 @@ export default function Dashboard() {
     } finally {
       setUploading(false);
     }
-  }
-
-  function signOut() {
-    auth.signOut();
-    navigate("/");
   }
 
   async function saveProfile() {
@@ -234,21 +205,13 @@ export default function Dashboard() {
     }
   }
 
-  async function cancelAppointment(id: number) {
-    await transitionAppointment(id, "cancelled");
-    await queryClient.invalidateQueries({ queryKey: ["appointments"] });
-  }
-
   async function advanceAppointment(id: number, status: "ongoing" | "completed") {
     setAppointmentActionId(id);
     setAppointmentMsg("");
     setAppointmentError("");
     try {
       await transitionAppointment(id, status);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["appointments"] }),
-        queryClient.invalidateQueries({ queryKey: ["creator-appointments"] })
-      ]);
+      await queryClient.invalidateQueries({ queryKey: ["creator-appointments"] });
       setAppointmentMsg(status === "ongoing" ? "预约已开始。" : "预约已完成。");
     } catch (err) {
       setAppointmentError(err instanceof Error ? err.message : "预约状态更新失败，请稍后重试。");
@@ -285,48 +248,6 @@ export default function Dashboard() {
 
   return (
     <div class="min-h-screen bg-ink text-paper">
-      <header class="sticky top-0 z-40 border-b border-white/8 bg-ink/85 backdrop-blur-xl">
-        <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 md:px-8">
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            class="flex items-center gap-2.5"
-          >
-            <span class="grid size-9 place-items-center rounded-lg bg-amber text-ink">
-              <Camera size={18} />
-            </span>
-            <span class="font-display text-lg font-semibold">Lumina Studio</span>
-          </button>
-          <div class="flex items-center gap-2">
-            <NotificationBell />
-            <Show when={me.data?.role === "admin"}>
-              <A
-                href="/admin"
-                class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-muted no-underline transition-colors hover:text-foreground"
-              >
-                <ShieldCheck size={16} />
-                <span class="hidden sm:inline">管理后台</span>
-              </A>
-            </Show>
-            <A
-              href="/account"
-              class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-muted no-underline transition-colors hover:text-foreground"
-            >
-              <Compass size={16} />
-              <span class="hidden sm:inline">客户中心</span>
-            </A>
-            <button
-              type="button"
-              onClick={signOut}
-              class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-muted transition-colors hover:border-coral hover:text-coral"
-            >
-              <LogOut size={16} />
-              <span class="hidden sm:inline">退出登录</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
       <main class="mx-auto max-w-7xl px-5 py-8 md:px-8 md:py-10">
         <div class="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div class="flex items-center gap-4">
@@ -822,43 +743,6 @@ export default function Dashboard() {
           </Show>
         </section>
 
-        <section class="mt-10">
-          <div class="mb-6 flex items-center gap-3">
-            <CalendarClock size={20} class="text-primary" />
-            <h2 class="font-display text-2xl font-semibold">我的预约</h2>
-          </div>
-          <Show
-            when={(appointments.data?.length ?? 0) > 0}
-            fallback={
-              <div class="grid min-h-32 place-items-center rounded-lg border border-dashed border-line text-sm text-muted">
-                还没有预约，去服务列表挑一个吧
-              </div>
-            }
-          >
-            <div class="space-y-3">
-              <For each={appointments.data ?? []}>
-                {(item) => (
-                  <div class="flex flex-col gap-3 rounded-lg border border-line bg-secondary p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div class="flex flex-wrap items-center gap-3">
-                        <span class="font-medium">{new Date(item.start_time).toLocaleString("zh-CN")}</span>
-                        <StatusBadge status={item.status} />
-                      </div>
-                      <p class="mt-1 text-sm text-muted">
-                        服务 #{item.service_id} · ¥{item.total_price}
-                      </p>
-                    </div>
-                    <Show when={["pending", "confirmed", "ongoing"].includes(item.status)}>
-                      <Button variant="outline" size="sm" onClick={() => cancelAppointment(item.id)}>
-                        取消预约
-                      </Button>
-                    </Show>
-                  </div>
-                )}
-              </For>
-            </div>
-          </Show>
-        </section>
       </main>
       <Assistant />
     </div>

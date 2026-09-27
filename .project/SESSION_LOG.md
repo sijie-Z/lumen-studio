@@ -100,3 +100,13 @@
 - **Summary**: Added isolated Playwright E2E for onboarding and notifications. Fixed missing notification bell on account/dashboard/admin role headers. Verified full customer/creator/admin flow, notification badges and read-all, onboarding dismissal persistence, 14 screenshots, port cleanup, and unchanged main DB SHA-256.
 - **Next**: Inspect onboarding-notify screenshots and consider WebSocket real-time notification delivery
 
+### [2026-09-27 20:23] main — Frontend structure refactor and core flow completion
+
+- **Task**: Grouped layouts, unified shell, route guards, IA cleanup, and booking-to-payment handoff
+- **Branch**: main
+- **Files**: web/src/main.tsx; web/src/components/layout/app-shell.tsx; web/src/components/layout/notification-bell.tsx; web/src/components/layout/require-auth.tsx; web/src/components/layout/require-role.tsx; web/src/components/layout/public-layout.tsx; web/src/components/layout/customer-layout.tsx; web/src/components/layout/creator-layout.tsx; web/src/components/layout/admin-layout.tsx; web/src/components/ui/state.tsx; web/src/pages/account.tsx; web/src/pages/dashboard.tsx; web/src/pages/admin.tsx; web/src/pages/service-detail.tsx; web/src/pages/explore.tsx; web/src/pages/services.tsx; web/src/pages/work-detail.tsx; web/src/pages/creator-profile.tsx
+- **Decision**: ADR-017 grouped routes by public/customer/creator/admin, moved navigation and session guards to layouts, removed customer appointments from creator workspace, and kept creator onboarding enabled for authenticated customers
+- **Verification**: pnpm build passed with tsc + Vite; 1845 modules transformed
+- **Risks**: Browser-level route guard and responsive shell verification is still pending; creator capability remains profile-based during onboarding
+- **Next**: Run grouped-layout browser E2E for public, customer, creator, and admin flows
+

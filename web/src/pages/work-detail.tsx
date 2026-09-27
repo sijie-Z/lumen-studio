@@ -4,8 +4,7 @@ import { ArrowLeft, CalendarDays, Heart, MessageCircle } from "lucide-solid";
 import { createSignal, Show } from "solid-js";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
-import { Skeleton } from "../components/ui/skeleton";
-import SiteHeader from "../components/layout/site-header";
+import { EmptyState, ErrorState, LoadingState } from "../components/ui/state";
 import Assistant from "../components/ai/assistant";
 import { listWorks } from "../lib/works-api";
 
@@ -22,8 +21,6 @@ export default function WorkDetail() {
 
   return (
     <div class="min-h-screen bg-background text-foreground">
-      <SiteHeader />
-
       <main class="mx-auto max-w-5xl px-5 pt-24 pb-24 md:px-8 md:pt-28">
         <A href="/explore" class="inline-flex items-center gap-2 text-sm text-muted no-underline hover:text-foreground">
           <ArrowLeft size={16} />
@@ -34,12 +31,22 @@ export default function WorkDetail() {
           when={current()}
           fallback={
             works.isLoading ? (
-              <div class="mt-8 space-y-4">
-                <Skeleton class="aspect-[4/3] w-full rounded-lg" />
-                <Skeleton class="h-8 w-2/3" />
-              </div>
+              <LoadingState class="mt-8" title="正在加载作品" description="正在获取作品详情。" />
+            ) : works.isError ? (
+              <ErrorState
+                class="mt-8"
+                title="作品加载失败"
+                description="暂时无法获取作品详情，请稍后再试。"
+                onRetry={() => works.refetch()}
+              />
             ) : (
-              <div class="mt-16 text-center text-muted">作品不存在或已被删除</div>
+              <EmptyState
+                class="mt-16"
+                title="作品不存在或已被删除"
+                description="返回探索页看看其他创作者的最新作品。"
+                ctaLabel="返回探索"
+                href="/explore"
+              />
             )
           }
         >

@@ -4,9 +4,8 @@ import { Search } from "lucide-solid";
 import { createMemo, createSignal, For, Show } from "solid-js";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
-import { Skeleton } from "../components/ui/skeleton";
+import { EmptyState, ErrorState, LoadingState } from "../components/ui/state";
 import SiteFooter from "../components/layout/site-footer";
-import SiteHeader from "../components/layout/site-header";
 import { listWorks } from "../lib/works-api";
 
 export default function Explore() {
@@ -25,8 +24,6 @@ export default function Explore() {
 
   return (
     <div class="min-h-screen bg-background text-foreground">
-      <SiteHeader />
-
       <main class="mx-auto max-w-7xl px-5 pt-24 pb-24 md:px-8 md:pt-28">
         <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
@@ -48,47 +45,58 @@ export default function Explore() {
         </div>
 
         <Show when={works.isLoading}>
-          <div class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map(() => (
-              <Skeleton class="aspect-[4/5] w-full rounded-lg" />
-            ))}
-          </div>
+          <LoadingState class="mt-12" title="正在加载作品" description="正在从创作者作品库整理最新影像。" />
+        </Show>
+
+        <Show when={works.isError}>
+          <ErrorState
+            class="mt-12"
+            title="作品加载失败"
+            description="暂时无法获取作品列表，请检查网络后重试。"
+            onRetry={() => works.refetch()}
+          />
         </Show>
 
         <Show when={works.isSuccess && filtered().length === 0}>
-          <div class="mt-12 grid min-h-56 place-items-center rounded-lg border border-dashed border-line text-muted">
-            {query() ? "没有找到匹配的作品" : "还没有作品，去上传第一张吧"}
-          </div>
+          <EmptyState
+            class="mt-12"
+            title={query() ? "没有找到匹配的作品" : "还没有作品"}
+            description={query() ? "换一个关键词，或清空搜索查看全部作品。" : "创作者上传作品后会展示在这里。"}
+            ctaLabel={query() ? "清空搜索" : undefined}
+            onClick={query() ? () => setQuery("") : undefined}
+          />
         </Show>
 
-        <div class="mt-12 columns-1 gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4">
-          <For each={filtered()}>
-            {(item) => (
-              <A
-                href={`/works/${item.id}`}
-                class="group block overflow-hidden rounded-lg border border-line bg-secondary no-underline"
-              >
-                <div class="overflow-hidden">
-                  <img
-                    src={item.image_url}
-                    alt={item.title ?? "作品"}
-                    loading="lazy"
-                    class="w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                </div>
-                <div class="flex items-start justify-between gap-4 p-4">
-                  <div class="min-w-0">
-                    <h2 class="truncate font-medium text-foreground">{item.title ?? "未命名作品"}</h2>
-                    <p class="mt-1 text-sm text-muted">
-                      {new Date(item.created_at).toLocaleDateString("zh-CN")}
-                    </p>
+        <Show when={works.isSuccess && filtered().length > 0}>
+          <div class="mt-12 columns-1 gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4">
+            <For each={filtered()}>
+              {(item) => (
+                <A
+                  href={`/works/${item.id}`}
+                  class="group block overflow-hidden rounded-lg border border-line bg-secondary no-underline"
+                >
+                  <div class="overflow-hidden">
+                    <img
+                      src={item.image_url}
+                      alt={item.title ?? "作品"}
+                      loading="lazy"
+                      class="w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
                   </div>
-                  <Badge variant="outline">{item.category ?? "作品"}</Badge>
-                </div>
-              </A>
-            )}
-          </For>
-        </div>
+                  <div class="flex items-start justify-between gap-4 p-4">
+                    <div class="min-w-0">
+                      <h2 class="truncate font-medium text-foreground">{item.title ?? "未命名作品"}</h2>
+                      <p class="mt-1 text-sm text-muted">
+                        {new Date(item.created_at).toLocaleDateString("zh-CN")}
+                      </p>
+                    </div>
+                    <Badge variant="outline">{item.category ?? "作品"}</Badge>
+                  </div>
+                </A>
+              )}
+            </For>
+          </div>
+        </Show>
       </main>
 
       <SiteFooter />

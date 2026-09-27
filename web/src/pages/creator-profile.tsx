@@ -5,8 +5,7 @@ import { createMemo, Show, For } from "solid-js";
 import { Avatar, AvatarFallback } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
-import { Skeleton } from "../components/ui/skeleton";
-import SiteHeader from "../components/layout/site-header";
+import { EmptyState, ErrorState, LoadingState } from "../components/ui/state";
 import SiteFooter from "../components/layout/site-footer";
 import { getCreator, listServices } from "../lib/marketplace-api";
 import { listCreatorReviews } from "../lib/reviews-api";
@@ -41,13 +40,25 @@ export default function CreatorProfile() {
 
   return (
     <div class="min-h-screen bg-background text-foreground">
-      <SiteHeader />
       <main class="mx-auto max-w-6xl px-5 pt-24 pb-24 md:px-8 md:pt-28">
         <Show
           when={creator.data}
           fallback={
-            creator.isLoading ? <Skeleton class="h-40 w-full rounded-lg" /> : (
-              <div class="text-center text-muted">创作者不存在</div>
+            creator.isLoading ? (
+              <LoadingState title="正在加载创作者资料" description="正在读取个人主页和风格信息。" />
+            ) : creator.isError ? (
+              <ErrorState
+                title="创作者资料加载失败"
+                description="暂时无法获取创作者信息，请稍后重试。"
+                onRetry={() => creator.refetch()}
+              />
+            ) : (
+              <EmptyState
+                title="创作者不存在"
+                description="返回探索页看看其他创作者的影像风格。"
+                ctaLabel="返回探索"
+                href="/explore"
+              />
             )
           }
         >
@@ -126,24 +137,27 @@ export default function CreatorProfile() {
 
             <Show
               when={!reviews.isLoading}
-              fallback={<Skeleton class="mt-6 h-32 w-full rounded-lg" />}
+              fallback={<LoadingState class="mt-6 min-h-32" title="正在加载评价" description="正在读取真实服务反馈。" />}
             >
               <Show
                 when={!reviews.isError}
                 fallback={
-                  <Card class="mt-6">
-                    <CardContent class="p-8 text-center text-muted">评价暂时无法加载</CardContent>
-                  </Card>
+                  <ErrorState
+                    class="mt-6 min-h-32"
+                    title="评价加载失败"
+                    description="暂时无法获取创作者评价。"
+                    onRetry={() => reviews.refetch()}
+                  />
                 }
               >
                 <Show
                   when={reviewList().length > 0}
                   fallback={
-                    <Card class="mt-6">
-                      <CardContent class="p-8 text-center text-muted">
-                        暂无用户评价，完成服务后期待你的真实反馈
-                      </CardContent>
-                    </Card>
+                    <EmptyState
+                      class="mt-6 min-h-32"
+                      title="暂无用户评价"
+                      description="完成服务后，客户评价会展示在这里。"
+                    />
                   }
                 >
                   <div class="mt-6 grid gap-4 md:grid-cols-2">

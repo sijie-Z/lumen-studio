@@ -128,3 +128,11 @@
 
 *2026-09-27 16:40*
 
+## ADR-017: Grouped frontend layouts with route-level guards
+
+**Reason**: Account, creator, and admin pages duplicated headers and performed request-failure-based redirects; public pages also carried their own navigation shell
+
+**Impact**: web routes are grouped into public/customer/creator/admin layouts; AppShell owns navigation, notification, user menu, and mobile behavior; RequireAuth handles session hydration and RequireRole handles admin authorization before page render; creator onboarding remains available to authenticated customers until capabilities become a first-class role model
+
+*2026-09-27 20:23*
+

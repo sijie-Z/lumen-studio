@@ -1,28 +1,24 @@
-import { A, useNavigate } from "@solidjs/router";
+import { A, useSearchParams } from "@solidjs/router";
 import { createQuery, useQueryClient } from "@tanstack/solid-query";
 import {
   CalendarDays,
-  Camera,
   Compass,
   CreditCard,
-  LogOut,
   Sparkles,
   Star,
   Store
 } from "lucide-solid";
-import { createEffect, createSignal, For, Show } from "solid-js";
+import { createSignal, For, Show } from "solid-js";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
-import { NotificationBell } from "../components/layout/site-header";
 import { EmptyState } from "../components/onboarding/empty-state";
 import { StepGuide, type GuideStep } from "../components/onboarding/step-guide";
 import { fetchMe, isAuthenticated } from "../lib/auth-api";
 import { listAppointments, transitionAppointment } from "../lib/marketplace-api";
 import { payAppointment, recharge } from "../lib/payment-api";
 import { createReview } from "../lib/reviews-api";
-import { useAuthStore } from "../stores/auth";
 
 const statusLabel: Record<string, string> = {
   pending: "待支付",
@@ -49,8 +45,7 @@ function friendlyError(error: unknown, fallback: string) {
 }
 
 export default function Account() {
-  const navigate = useNavigate();
-  const auth = useAuthStore();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const me = createQuery(() => ({
     queryKey: ["me"] as const,
@@ -73,6 +68,7 @@ export default function Account() {
   const [actionMessage, setActionMessage] = createSignal("");
   const [actionError, setActionError] = createSignal("");
   const hasAppointments = () => (appointments.data?.length ?? 0) > 0;
+  const focusedAppointmentId = () => Number(searchParams.appointment ?? 0);
   const customerSteps = (): GuideStep[] => [
     {
       title: "浏览服务",
@@ -96,13 +92,6 @@ export default function Account() {
         ) ?? false
     }
   ];
-
-  createEffect(() => {
-    if (!isAuthenticated()) navigate("/login");
-  });
-  createEffect(() => {
-    if (me.data) auth.setCurrentUser(me.data);
-  });
 
   async function cancel(id: number) {
     setActionError("");
@@ -185,31 +174,6 @@ export default function Account() {
 
   return (
     <div class="min-h-screen bg-background text-foreground">
-      <header class="sticky top-0 z-40 border-b border-line bg-background/85 backdrop-blur-xl">
-        <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 md:px-8">
-          <button type="button" onClick={() => navigate("/")} class="flex items-center gap-2.5">
-            <span class="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <Camera size={18} />
-            </span>
-            <span class="font-display text-lg font-semibold">我的账户</span>
-          </button>
-          <div class="flex items-center gap-3">
-            <NotificationBell />
-            <button
-              type="button"
-              onClick={() => {
-                auth.signOut();
-                navigate("/");
-              }}
-              class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-muted hover:text-foreground"
-            >
-              <LogOut size={16} />
-              <span class="hidden sm:inline">退出</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
       <main class="mx-auto max-w-6xl px-5 py-8 md:px-8 md:py-10">
         <Show when={actionMessage()}>
           <div class="mb-5 rounded-lg border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-accent" role="status">
@@ -322,7 +286,10 @@ export default function Account() {
             <div class="mt-5 space-y-3">
               <For each={appointments.data ?? []}>
                 {(item) => (
-                  <div class="overflow-hidden rounded-lg border border-line bg-secondary">
+                  <div
+                    id={`appointment-${item.id}`}
+                    class={`overflow-hidden rounded-lg border bg-secondary ${focusedAppointmentId() === item.id ? "border-primary shadow-lg shadow-primary/10" : "border-line"}`}
+                  >
                     <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <div class="flex flex-wrap items-center gap-3">

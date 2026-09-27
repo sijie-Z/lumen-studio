@@ -1,10 +1,9 @@
 # Task Board
 
 ## TODO
-- Creator profile + Service CRUD
-- Appointment + Payment module
-- AI assistant chat UI
-- SolidJS frontend skeleton
+- Browser E2E for grouped layouts, role redirects, and booking-to-payment handoff
+- Introduce first-class customer/creator capabilities without blocking creator onboarding
+- Paginate list APIs and connect the existing PaginatedResponse contract
 
 ## DOING
 - (empty)
@@ -25,4 +24,7 @@
 - User onboarding system
 - Message notification system
 - Onboarding and notification browser E2E
+- Frontend grouped layouts + shared AppShell + route guards
+- Unified loading/error/empty/success states on core pages
+- Booking success now links directly to the highlighted order payment action
 
