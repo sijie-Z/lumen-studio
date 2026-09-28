@@ -1,22 +1,25 @@
-import { A, useParams } from "@solidjs/router";
-import { createQuery } from "@tanstack/solid-query";
+import { A, useNavigate, useParams } from "@solidjs/router";
+import { createQuery, useQueryClient } from "@tanstack/solid-query";
 import {
   Award,
   BriefcaseBusiness,
   CalendarCheck,
   Clock,
+  Heart,
   Images,
   MapPin,
   MessageSquareQuote,
   Star
 } from "lucide-solid";
-import { createMemo, createSignal, For, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
 import { EmptyState, ErrorState, LoadingState, PaginationState } from "../components/ui/state";
 import SiteFooter from "../components/layout/site-footer";
+import { isAuthenticated } from "../lib/auth-api";
 import { cn } from "../lib/cn";
+import { favoriteStatus, toggleFavorite, type FavoriteStateDto } from "../lib/favorites-api";
 import { getCreator, listServices } from "../lib/marketplace-api";
 import { listCreatorReviews } from "../lib/reviews-api";
 import { listWorks } from "../lib/works-api";
@@ -55,11 +58,21 @@ function formatCertification(value: string) {
 
 export default function CreatorProfile() {
   const params = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = createSignal<ProfileTab>("services");
   const [reviewPage, setReviewPage] = createSignal(1);
+  const [pendingFavorite, setPendingFavorite] = createSignal(false);
+  const [favoriteState, setFavoriteState] = createSignal<FavoriteStateDto | null>(null);
+  const [favoriteError, setFavoriteError] = createSignal("");
   const creator = createQuery(() => ({
     queryKey: ["creator", params.id] as const,
     queryFn: () => getCreator(params.id ?? "")
+  }));
+  const favorite = createQuery(() => ({
+    queryKey: ["favorite-status", "creator", params.id] as const,
+    queryFn: () => favoriteStatus("creator", Number(params.id)),
+    enabled: isAuthenticated() && Boolean(params.id)
   }));
   const services = createQuery(() => ({
     queryKey: ["services"] as const,
@@ -88,6 +101,14 @@ export default function CreatorProfile() {
     return (works.data ?? []).filter((item) => item.user_id === profile.user_id);
   });
   const reviewList = createMemo(() => reviews.data?.items ?? []);
+  const favoriteView = createMemo(
+    () => favoriteState() ?? favorite.data ?? { favorited: false, count: 0 }
+  );
+  createEffect(() => {
+    params.id;
+    setFavoriteState(null);
+    setFavoriteError("");
+  });
   const reviewTotal = createMemo(() => reviews.data?.total ?? 0);
   const displayName = createMemo(() => {
     const nickname = creator.data?.nickname?.trim();
@@ -107,6 +128,28 @@ export default function CreatorProfile() {
 
     return areas.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
   });
+
+  async function handleFavoriteCreator() {
+    if (!isAuthenticated()) {
+      navigate("/login");
+      return;
+    }
+    const profile = creator.data;
+    if (!profile) return;
+
+    setPendingFavorite(true);
+    setFavoriteError("");
+    try {
+      const result = await toggleFavorite("creator", profile.id);
+      setFavoriteState(result);
+      queryClient.setQueryData(["favorite-status", "creator", params.id], result);
+      await queryClient.invalidateQueries({ queryKey: ["favorites"] });
+    } catch (err) {
+      setFavoriteError(err instanceof Error ? err.message : "收藏失败，请稍后重试。");
+    } finally {
+      setPendingFavorite(false);
+    }
+  }
 
   const tabCount = (tab: ProfileTab) => {
     if (tab === "services") return ownServices().length;
@@ -196,6 +239,39 @@ export default function CreatorProfile() {
                         <span class="inline-flex min-w-0 items-center gap-1.5 text-muted">
                           <MapPin size={15} class="shrink-0" />
                           <span class="truncate">{serviceAreas().join(" · ")}</span>
+                        </span>
+                      </Show>
+                    </div>
+
+                    <div class="mt-5 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleFavoriteCreator}
+                        disabled={pendingFavorite()}
+                        aria-pressed={favoriteView().favorited}
+                        class={cn(
+                          "inline-flex h-10 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium transition-colors disabled:opacity-60",
+                          favoriteView().favorited
+                            ? "border-coral/60 bg-coral/15 text-coral hover:bg-coral/20"
+                            : "border-line bg-transparent text-foreground hover:bg-surface"
+                        )}
+                      >
+                        <Heart
+                          size={16}
+                          class={favoriteView().favorited ? "fill-current" : ""}
+                        />
+                        {pendingFavorite()
+                          ? "处理中"
+                          : favoriteView().favorited
+                            ? "已收藏创作者"
+                            : "收藏创作者"}
+                        <Show when={isAuthenticated() && favorite.data}>
+                          <span class="text-xs text-muted">{favoriteView().count}</span>
+                        </Show>
+                      </button>
+                      <Show when={favoriteError()}>
+                        <span class="text-xs text-destructive" role="alert">
+                          {favoriteError()}
                         </span>
                       </Show>
                     </div>

@@ -48,6 +48,7 @@ async fn main() -> anyhow::Result<()> {
         chat: ai::ChatClient::from_env(),
         works: services::work_service::WorkService::new(db.clone()),
         creators: services::creator_service::CreatorService::new(db.clone()),
+        favorites: services::favorite_service::FavoriteService::new(db.clone()),
         analytics: services::creator_analytics_service::CreatorAnalyticsService::new(db.clone()),
         services: services_catalog,
         appointments: services::appointment_service::AppointmentService::new(db.clone()),

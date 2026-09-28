@@ -184,3 +184,11 @@
 
 *2026-09-29 00:41*
 
+## ADR-024: Favorites are one polymorphic table with a unique triple
+
+**Reason**: Works, services, and creators all need a bookmark/like action, and duplicating three near-identical tables would multiply migration, service, and API code without adding real domain value.
+
+**Impact**: A single `favorites` table stores `(user_id, target_type, target_id, created_at)` with a unique index on `(user_id, target_type, target_id)` and a lookup index on `(user_id, target_type)`. `target_type` is restricted to `work | service | creator` at the service boundary, so invalid values are rejected with 400 before touching the database. Toggle is read-then-write, and the unique index is the final guard against concurrent duplicate inserts; a unique-constraint race is treated as already-favorited instead of surfacing a 500. Counts are derived from the table rather than cached columns.
+
+*2026-09-29 00:49*
+

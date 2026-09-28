@@ -4,11 +4,12 @@ import {
   CalendarDays,
   Compass,
   CreditCard,
+  Heart,
   Sparkles,
   Star,
   Store
 } from "lucide-solid";
-import { createSignal, For, Show } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
@@ -16,9 +17,26 @@ import { Input } from "../components/ui/input";
 import { EmptyState } from "../components/onboarding/empty-state";
 import { StepGuide, type GuideStep } from "../components/onboarding/step-guide";
 import { fetchMe, isAuthenticated } from "../lib/auth-api";
-import { listAppointments, transitionAppointment } from "../lib/marketplace-api";
+import { cn } from "../lib/cn";
+import { listFavorites, type FavoriteDto, type FavoriteTargetType } from "../lib/favorites-api";
+import {
+  listAppointments,
+  listCreators,
+  listServices,
+  transitionAppointment
+} from "../lib/marketplace-api";
 import { payAppointment, recharge } from "../lib/payment-api";
 import { createReview } from "../lib/reviews-api";
+import { listWorks } from "../lib/works-api";
+
+type FavoriteFilter = "all" | FavoriteTargetType;
+
+const favoriteFilters: { id: FavoriteFilter; label: string }[] = [
+  { id: "all", label: "全部" },
+  { id: "work", label: "作品" },
+  { id: "service", label: "服务" },
+  { id: "creator", label: "创作者" }
+];
 
 const statusLabel: Record<string, string> = {
   pending: "待支付",
@@ -44,6 +62,16 @@ function friendlyError(error: unknown, fallback: string) {
   return translations[message] ?? (message || fallback);
 }
 
+function formatFavoriteDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "short",
+    day: "numeric"
+  }).format(date);
+}
+
 export default function Account() {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -55,6 +83,27 @@ export default function Account() {
   const appointments = createQuery(() => ({
     queryKey: ["appointments"] as const,
     queryFn: listAppointments,
+    enabled: isAuthenticated()
+  }));
+  const [favoriteFilter, setFavoriteFilter] = createSignal<FavoriteFilter>("all");
+  const favorites = createQuery(() => ({
+    queryKey: ["favorites"] as const,
+    queryFn: () => listFavorites(),
+    enabled: isAuthenticated()
+  }));
+  const favoriteWorks = createQuery(() => ({
+    queryKey: ["works"] as const,
+    queryFn: listWorks,
+    enabled: isAuthenticated()
+  }));
+  const favoriteServices = createQuery(() => ({
+    queryKey: ["services"] as const,
+    queryFn: listServices,
+    enabled: isAuthenticated()
+  }));
+  const favoriteCreators = createQuery(() => ({
+    queryKey: ["creators"] as const,
+    queryFn: listCreators,
     enabled: isAuthenticated()
   }));
   const [rechargeAmount, setRechargeAmount] = createSignal("5000");
@@ -69,6 +118,56 @@ export default function Account() {
   const [actionError, setActionError] = createSignal("");
   const hasAppointments = () => (appointments.data?.length ?? 0) > 0;
   const focusedAppointmentId = () => Number(searchParams.appointment ?? 0);
+  const favoriteItems = createMemo(() => {
+    const filter = favoriteFilter();
+    return (favorites.data ?? []).filter(
+      (item) => filter === "all" || item.target_type === filter
+    );
+  });
+
+  function favoriteLink(item: FavoriteDto) {
+    if (item.target_type === "work") return `/works/${item.target_id}`;
+    if (item.target_type === "service") return `/services/${item.target_id}`;
+    return `/creators/${item.target_id}`;
+  }
+
+  function favoriteTitle(item: FavoriteDto) {
+    if (item.target_type === "work") {
+      return (
+        (favoriteWorks.data ?? []).find((work) => work.id === item.target_id)?.title ??
+        `作品 #${item.target_id}`
+      );
+    }
+    if (item.target_type === "service") {
+      return (
+        (favoriteServices.data ?? []).find((service) => service.id === item.target_id)?.title ??
+        `服务 #${item.target_id}`
+      );
+    }
+    const creator = (favoriteCreators.data ?? []).find(
+      (profile) => profile.id === item.target_id
+    );
+    return creator?.nickname?.trim() || `创作者 #${item.target_id}`;
+  }
+
+  function favoriteImage(item: FavoriteDto) {
+    if (item.target_type === "work") {
+      return (favoriteWorks.data ?? []).find((work) => work.id === item.target_id)?.image_url;
+    }
+    if (item.target_type === "service") {
+      return (
+        (favoriteServices.data ?? []).find((service) => service.id === item.target_id)
+          ?.cover_image_url ?? undefined
+      );
+    }
+    return undefined;
+  }
+
+  function favoriteMeta(item: FavoriteDto) {
+    if (item.target_type === "work") return "摄影作品";
+    if (item.target_type === "service") return "预约服务";
+    return "创作者";
+  }
   const customerSteps = (): GuideStep[] => [
     {
       title: "浏览服务",
@@ -365,6 +464,80 @@ export default function Account() {
                       </div>
                     </Show>
                   </div>
+                )}
+              </For>
+            </div>
+          </Show>
+        </section>
+
+        <section class="mt-10">
+          <div class="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 class="font-display text-2xl font-semibold">我的收藏</h2>
+              <p class="mt-1 text-sm text-muted">收藏的作品、服务与创作者都集中在这里</p>
+            </div>
+            <div class="flex flex-wrap gap-1 rounded-lg border border-line bg-secondary p-1">
+              <For each={favoriteFilters}>
+                {(filter) => (
+                  <button
+                    type="button"
+                    onClick={() => setFavoriteFilter(filter.id)}
+                    aria-pressed={favoriteFilter() === filter.id}
+                    class={cn(
+                      "rounded-md px-3 py-1.5 text-xs transition-colors",
+                      favoriteFilter() === filter.id
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted hover:text-foreground"
+                    )}
+                  >
+                    {filter.label}
+                  </button>
+                )}
+              </For>
+            </div>
+          </div>
+
+          <Show
+            when={favoriteItems().length > 0}
+            fallback={
+              <EmptyState
+                class="mt-5"
+                icon={<Heart size={20} />}
+                title="还没有收藏"
+                description="在作品详情和创作者主页点击收藏，之后可以在这里快速找到。"
+                ctaLabel="去探索作品"
+                href="/explore"
+              />
+            }
+          >
+            <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <For each={favoriteItems()}>
+                {(item) => (
+                  <A href={favoriteLink(item)} class="group no-underline">
+                    <Card class="h-full overflow-hidden transition-colors group-hover:border-primary/60">
+                      <Show when={favoriteImage(item)}>
+                        {(src) => (
+                          <div class="aspect-[16/10] overflow-hidden bg-ink">
+                            <img
+                              src={src()}
+                              alt={favoriteTitle(item)}
+                              loading="lazy"
+                              class="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            />
+                          </div>
+                        )}
+                      </Show>
+                      <CardContent class="p-4">
+                        <div class="flex items-center justify-between gap-2">
+                          <Badge variant="outline">{favoriteMeta(item)}</Badge>
+                          <span class="text-xs text-muted">
+                            {formatFavoriteDate(item.created_at)}
+                          </span>
+                        </div>
+                        <p class="mt-3 line-clamp-1 font-medium">{favoriteTitle(item)}</p>
+                      </CardContent>
+                    </Card>
+                  </A>
                 )}
               </For>
             </div>

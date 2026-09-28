@@ -239,3 +239,14 @@
 - **Risks**: The dashboard has not yet been checked in a populated browser session; empty and zero-value charts are covered by the component logic and route test
 - **Next**: Run browser-level visual and interaction checks for the creator analytics dashboard, then continue product-level UI polish
 
+### [2026-09-29 00:49] main — Favorites for works, services, and creators
+
+- **Task**: Implement a real favorites/likes feature aligned with 500px-style bookmarking
+- **Branch**: main
+- **Files**: backend/crates/db/src/entities/favorite.rs; backend/crates/db/src/entities/mod.rs; backend/crates/db/src/migrations/m20260929_000009_create_favorites.rs; backend/crates/db/src/migrations/mod.rs; backend/crates/services/src/favorite_service.rs; backend/crates/services/src/lib.rs; backend/crates/services/tests/favorite_flow.rs; backend/crates/api/src/routes/favorites.rs; backend/crates/api/src/routes/mod.rs; backend/crates/api/src/state.rs; backend/crates/api/src/main.rs; web/src/lib/favorites-api.ts; web/src/pages/work-detail.tsx; web/src/pages/creator-profile.tsx; web/src/pages/account.tsx; .project
+- **Decision**: ADR-024; favorites are a single polymorphic table keyed by (user_id, target_type, target_id) with a database-level unique index
+- **Summary**: Added a `favorites` table with a unique constraint on (user_id, target_type, target_id) plus a (user_id, target_type) lookup index. `FavoriteService` validates `target_type` against work|service|creator, toggles atomically, and exposes status/count/list. Auth-only API: `POST /favorites/toggle`, `GET /favorites?target_type=`, `GET /favorites/status?target_type=&target_id=`. Frontend gained a real favorite button on work detail and creator profile (anonymous clicks route to /login), plus a filterable "我的收藏" section in the customer center that links back to work, service, and creator pages.
+- **Verification**: `cargo test --workspace` passed 66 tests, including five service-level favorite tests and two API-level favorite tests; `pnpm build` passed 1848 modules; changed Rust files were formatted with rustfmt
+- **Risks**: The account favorites list resolves titles and cover images from the first 100 works/services/creators, so an older favorite beyond that page falls back to "作品/服务 #id" or a text-only card. A dedicated favorites-join endpoint is the next step if the collection grows.
+- **Next**: Run a browser-level favorite flow check (favorite from work detail and creator profile, confirm account list, unfavorite) against an isolated test database
+

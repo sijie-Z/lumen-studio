@@ -1,18 +1,22 @@
-import { A, useParams } from "@solidjs/router";
-import { createQuery } from "@tanstack/solid-query";
+import { A, useNavigate, useParams } from "@solidjs/router";
+import { createQuery, useQueryClient } from "@tanstack/solid-query";
 import {
   ArrowLeft,
   CalendarDays,
   ChevronRight,
   FolderOpen,
+  Heart,
   Images,
   UserRound
 } from "lucide-solid";
-import { createMemo, For, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import { Avatar, AvatarFallback } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { EmptyState, ErrorState, LoadingState } from "../components/ui/state";
 import Assistant from "../components/ai/assistant";
+import { isAuthenticated } from "../lib/auth-api";
+import { cn } from "../lib/cn";
+import { favoriteStatus, toggleFavorite, type FavoriteStateDto } from "../lib/favorites-api";
 import { listCreators } from "../lib/marketplace-api";
 import { getWork, listWorks } from "../lib/works-api";
 
@@ -29,9 +33,19 @@ function formatDate(value: string) {
 
 export default function WorkDetail() {
   const params = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [pendingFavorite, setPendingFavorite] = createSignal(false);
+  const [favoriteState, setFavoriteState] = createSignal<FavoriteStateDto | null>(null);
+  const [favoriteError, setFavoriteError] = createSignal("");
   const workDetail = createQuery(() => ({
     queryKey: ["work", params.id] as const,
     queryFn: () => getWork(params.id ?? "")
+  }));
+  const favorite = createQuery(() => ({
+    queryKey: ["favorite-status", "work", params.id] as const,
+    queryFn: () => favoriteStatus("work", Number(params.id)),
+    enabled: isAuthenticated() && Boolean(params.id)
   }));
   const works = createQuery(() => ({
     queryKey: ["works"] as const,
@@ -43,6 +57,15 @@ export default function WorkDetail() {
   }));
 
   const current = createMemo(() => workDetail.data);
+  const favoriteView = createMemo(
+    () => favoriteState() ?? favorite.data ?? { favorited: false, count: 0 }
+  );
+  createEffect(() => {
+    // 切换到其他作品时清掉上一件作品留下的本地状态。
+    params.id;
+    setFavoriteState(null);
+    setFavoriteError("");
+  });
   const creatorProfile = createMemo(() => {
     const work = current();
     if (!work) return undefined;
@@ -67,6 +90,28 @@ export default function WorkDetail() {
       })
       .slice(0, 3);
   });
+
+  async function handleFavorite() {
+    if (!isAuthenticated()) {
+      navigate("/login");
+      return;
+    }
+    const work = current();
+    if (!work) return;
+
+    setPendingFavorite(true);
+    setFavoriteError("");
+    try {
+      const result = await toggleFavorite("work", work.id);
+      setFavoriteState(result);
+      queryClient.setQueryData(["favorite-status", "work", params.id], result);
+      await queryClient.invalidateQueries({ queryKey: ["favorites"] });
+    } catch (err) {
+      setFavoriteError(err instanceof Error ? err.message : "收藏失败，请稍后重试。");
+    } finally {
+      setPendingFavorite(false);
+    }
+  }
 
   return (
     <div class="min-h-screen bg-background text-foreground">
@@ -171,6 +216,37 @@ export default function WorkDetail() {
                             <ChevronRight size={16} />
                           </A>
                         )}
+                      </Show>
+
+                      <button
+                        type="button"
+                        onClick={handleFavorite}
+                        disabled={pendingFavorite()}
+                        aria-pressed={favoriteView().favorited}
+                        class={cn(
+                          "mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium transition-colors disabled:opacity-60",
+                          favoriteView().favorited
+                            ? "border-coral/60 bg-coral/15 text-coral hover:bg-coral/20"
+                            : "border-line bg-transparent text-foreground hover:bg-surface"
+                        )}
+                      >
+                        <Heart
+                          size={16}
+                          class={favoriteView().favorited ? "fill-current" : ""}
+                        />
+                        {pendingFavorite()
+                          ? "处理中"
+                          : favoriteView().favorited
+                            ? "已收藏"
+                            : "收藏作品"}
+                        <Show when={isAuthenticated() && favorite.data}>
+                          <span class="text-xs text-muted">{favoriteView().count}</span>
+                        </Show>
+                      </button>
+                      <Show when={favoriteError()}>
+                        <p class="mt-2 text-xs text-destructive" role="alert">
+                          {favoriteError()}
+                        </p>
                       </Show>
 
                       <Show when={!creators.isLoading && !creatorProfile()}>

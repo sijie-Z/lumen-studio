@@ -5,6 +5,7 @@ use services::appointment_service::AppointmentService;
 use services::auth_service::AuthService;
 use services::creator_analytics_service::CreatorAnalyticsService;
 use services::creator_service::CreatorService;
+use services::favorite_service::FavoriteService;
 use services::notification_service::NotificationService;
 use services::payment_service::PaymentService;
 use services::review_service::ReviewService;
@@ -20,6 +21,7 @@ pub struct AppState {
     pub chat: ChatClient,
     pub works: WorkService,
     pub creators: CreatorService,
+    pub favorites: FavoriteService,
     pub analytics: CreatorAnalyticsService,
     pub services: ServiceCatalog,
     pub appointments: AppointmentService,

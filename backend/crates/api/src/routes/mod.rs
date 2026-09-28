@@ -4,6 +4,7 @@ mod appointments;
 mod auth;
 mod creator_analytics;
 mod creators;
+mod favorites;
 mod health;
 mod notifications;
 mod payments;
@@ -23,6 +24,7 @@ pub fn router() -> Router<AppState> {
         .nest("/api/v1/ai", ai::router())
         .nest("/api/v1", creators::router())
         .nest("/api/v1", creator_analytics::router())
+        .nest("/api/v1", favorites::router())
         .nest("/api/v1", service_routes::router())
         .nest("/api/v1", appointments::router())
         .nest("/api/v1", payments::router())
@@ -70,6 +72,7 @@ mod tests {
             chat: ::ai::ChatClient::from_env(),
             works: WorkService::new(db.clone()),
             creators: CreatorService::new(db.clone()),
+            favorites: services::favorite_service::FavoriteService::new(db.clone()),
             analytics: services::creator_analytics_service::CreatorAnalyticsService::new(
                 db.clone(),
             ),
@@ -359,6 +362,120 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn favorite_routes_require_authentication() {
+        let response = test_app()
+            .await
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/favorites")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response = test_app()
+            .await
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/favorites/toggle")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"target_type":"work","target_id":1}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn favorite_toggle_api_flow() {
+        let (app, _db) = test_app_with_db().await;
+        register_user(&app, "favorite_user", None).await;
+        let token = login_token(&app, "favorite_user").await;
+
+        let toggle_request = |target_type: &str, target_id: i32| {
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/favorites/toggle")
+                .header("authorization", format!("Bearer {token}"))
+                .header("content-type", "application/json")
+                .body(Body::from(format!(
+                    r#"{{"target_type":"{target_type}","target_id":{target_id}}}"#
+                )))
+                .unwrap()
+        };
+
+        let first = app
+            .clone()
+            .oneshot(toggle_request("work", 99))
+            .await
+            .unwrap();
+        assert_eq!(first.status(), StatusCode::OK);
+        let first = response_json(first).await;
+        assert_eq!(first["data"]["favorited"], true);
+        assert_eq!(first["data"]["count"], 1);
+
+        let second = app
+            .clone()
+            .oneshot(toggle_request("work", 99))
+            .await
+            .unwrap();
+        assert_eq!(second.status(), StatusCode::OK);
+        let second = response_json(second).await;
+        assert_eq!(second["data"]["favorited"], false);
+        assert_eq!(second["data"]["count"], 0);
+
+        let invalid = app
+            .clone()
+            .oneshot(toggle_request("album", 99))
+            .await
+            .unwrap();
+        assert_eq!(invalid.status(), StatusCode::BAD_REQUEST);
+
+        // 再次收藏后，状态接口应反映已收藏与总数。
+        app.clone()
+            .oneshot(toggle_request("work", 99))
+            .await
+            .unwrap();
+
+        let status = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/favorites/status?target_type=work&target_id=99")
+                    .header("authorization", format!("Bearer {token}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(status.status(), StatusCode::OK);
+        let status = response_json(status).await;
+        assert_eq!(status["data"]["favorited"], true);
+        assert_eq!(status["data"]["count"], 1);
+
+        let list = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/favorites")
+                    .header("authorization", format!("Bearer {token}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(list.status(), StatusCode::OK);
+        let list = response_json(list).await;
+        let items = list["data"].as_array().unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0]["target_type"], "work");
+        assert_eq!(items[0]["target_id"], 99);
     }
 
     #[tokio::test]

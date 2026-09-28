@@ -33,14 +33,19 @@
 - [x] Verify Lumen Studio rebrand with four isolated browser regressions
 - [x] Stabilize browser regressions by serving the production Vite build
 - [x] Creator analytics dashboard: settled income, appointment completion, ratings, status and monthly revenue
+- [x] Favorites for works, services, and creators (real toggle, status, count, account collection list)
 
 ## Recent Changes
-- backend/crates/services/src/creator_analytics_service.rs
-- backend/crates/api/src/routes/creator_analytics.rs
+- backend/crates/db/src/entities/favorite.rs
+- backend/crates/db/src/migrations/m20260929_000009_create_favorites.rs
+- backend/crates/services/src/favorite_service.rs
+- backend/crates/api/src/routes/favorites.rs
 - backend/crates/api/src/state.rs
 - backend/crates/api/src/main.rs
-- web/src/lib/analytics-api.ts
-- web/src/pages/dashboard.tsx
+- web/src/lib/favorites-api.ts
+- web/src/pages/work-detail.tsx
+- web/src/pages/creator-profile.tsx
+- web/src/pages/account.tsx
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
@@ -48,4 +53,5 @@
 - Long browser flows should use the production preview test runtime because the Vite dev server is resource-heavy on this Windows host
 
 ## Next Step
+- Run a browser-level favorite flow check (favorite from work detail and creator profile, confirm the account collection list, then unfavorite) against an isolated test database
 - Run browser-level visual and interaction checks for the creator analytics dashboard, including empty and populated states
