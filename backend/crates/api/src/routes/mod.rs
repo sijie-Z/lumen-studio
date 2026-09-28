@@ -723,6 +723,113 @@ mod tests {
         let list = response_json(list).await;
         assert_eq!(list["data"].as_array().unwrap().len(), 2);
     }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn concurrent_withdrawal_reviews_return_conflict_instead_of_internal_error() {
+        let (app, db) = test_app_with_db().await;
+        let auth = AuthService::new(db.clone(), "test-secret", 900, 86_400);
+
+        let creator = auth
+            .register(RegisterInput {
+                username: "concurrent_creator".into(),
+                password: "password123".into(),
+                email: None,
+                phone: None,
+                nickname: Some("Concurrent Creator".into()),
+            })
+            .await
+            .unwrap();
+        let admin = auth
+            .register(RegisterInput {
+                username: "concurrent_admin".into(),
+                password: "password123".into(),
+                email: None,
+                phone: None,
+                nickname: Some("Concurrent Admin".into()),
+            })
+            .await
+            .unwrap();
+
+        let admin_model = user_entity::Entity::find_by_id(admin.id)
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+        let mut admin_model = admin_model.into_active_model();
+        admin_model.role = Set("admin".into());
+        admin_model.update(&db).await.unwrap();
+
+        let creator_user = user_entity::Entity::find_by_id(creator.id)
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+        let mut creator_user = creator_user.into_active_model();
+        creator_user.balance = Set(Decimal::new(1000_00, 2));
+        creator_user.update(&db).await.unwrap();
+
+        let now = Utc::now();
+        creator_entity::ActiveModel {
+            user_id: Set(creator.id),
+            rating: Set(Decimal::new(50, 1)),
+            certification_level: Set("standard".into()),
+            total_services: Set(0),
+            total_appointments: Set(0),
+            total_income: Set(Decimal::ZERO),
+            avg_rating: Set(Decimal::ZERO),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+
+        let withdrawal = WithdrawalService::new(db.clone())
+            .apply(creator.id, Decimal::new(200_00, 2), None)
+            .await
+            .unwrap();
+        let admin_login = auth
+            .login(LoginInput {
+                account: "concurrent_admin".into(),
+                password: "password123".into(),
+            })
+            .await
+            .unwrap();
+
+        let review_request = || {
+            Request::builder()
+                .method("PATCH")
+                .uri(format!("/api/v1/admin/withdrawals/{}", withdrawal.id))
+                .header(
+                    "authorization",
+                    format!("Bearer {}", admin_login.access_token),
+                )
+                .header("content-type", "application/json")
+                .body(Body::from(r#"{"approve":false,"note":"concurrent"}"#))
+                .unwrap()
+        };
+        let (left, right) = tokio::join!(
+            app.clone().oneshot(review_request()),
+            app.clone().oneshot(review_request())
+        );
+        let left = left.unwrap();
+        let right = right.unwrap();
+        let mut statuses = [left.status().as_u16(), right.status().as_u16()];
+        statuses.sort_unstable();
+        assert_eq!(
+            statuses,
+            [StatusCode::OK.as_u16(), StatusCode::CONFLICT.as_u16()]
+        );
+
+        let creator_user = user_entity::Entity::find_by_id(creator.id)
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(creator_user.balance, Decimal::new(1000_00, 2));
+    }
+
     #[tokio::test]
     async fn withdrawal_routes_require_authentication() {
         let response = test_app()

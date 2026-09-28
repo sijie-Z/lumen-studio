@@ -172,3 +172,10 @@
 - **Risks**: Postgres-specific row-lock behavior was reviewed statically but not executed because the isolated suite uses SQLite.
 - **Next**: Make appointment duration comparison exact at second precision; validate service duration into 60-480 at creation/update; translate SQLite busy/lock errors during conditional review into Conflict or retry.
 
+### [2026-09-28 19:28] main — Close remaining validation and concurrency gaps
+
+- **Task**: Close remaining validation and concurrency gaps
+- **Branch**: main
+- **Summary**: Closed three adversarial-review findings: appointment duration now requires exact end-start equality so 12:00:59 cannot pass as 120 minutes; service creation rejects durations outside 60-480 minutes; SQLite lock, busy, and deadlock errors map to retryable 409 conflicts across the shared error boundary, with concurrent API review regression proving 200+409 and a single refund. cargo test --workspace passed 48 tests; pnpm build passed 1846 modules; git diff --check passed.
+- **Next**: Submit for adversarial re-review after exact duration validation, service duration bounds, and SQLite deadlock-to-409 mapping
+

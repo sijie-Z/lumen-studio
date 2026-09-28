@@ -49,7 +49,16 @@ impl AppError {
     where
         E: std::error::Error + Send + Sync + 'static,
     {
-        AppError::Internal(anyhow::Error::new(err))
+        let message = err.to_string().to_lowercase();
+        if message.contains("database is locked")
+            || message.contains("database table is locked")
+            || message.contains("database is busy")
+            || message.contains("deadlock")
+        {
+            AppError::Conflict("database is busy; retry the request".into())
+        } else {
+            AppError::Internal(anyhow::Error::new(err))
+        }
     }
 
     fn status_code(&self) -> StatusCode {
@@ -110,5 +119,14 @@ mod tests {
     fn internal_errors_do_not_expose_their_details() {
         let error = AppError::Internal(anyhow::anyhow!("database password leaked"));
         assert_eq!(error.public_message(), "Internal server error");
+    }
+
+    #[test]
+    fn database_lock_errors_map_to_conflict() {
+        let error = AppError::from_anyhow(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "database is locked",
+        ));
+        assert!(matches!(error, AppError::Conflict(_)));
     }
 }

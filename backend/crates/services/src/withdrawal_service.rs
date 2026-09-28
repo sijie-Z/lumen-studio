@@ -46,7 +46,7 @@ impl WithdrawalService {
     ) -> Result<WithdrawalDto, AppError> {
         let amount = positive_money(amount, "withdrawal amount")?;
         let now = Utc::now();
-        let txn = self.db.begin().await.map_err(AppError::from_anyhow)?;
+        let txn = self.db.begin().await.map_err(map_withdrawal_db_error)?;
 
         let creator = creator_entity::Entity::find()
             .filter(creator_entity::Column::UserId.eq(creator_user_id))
@@ -119,7 +119,7 @@ impl WithdrawalService {
         note: Option<String>,
     ) -> Result<WithdrawalDto, AppError> {
         let now = Utc::now();
-        let txn = self.db.begin().await.map_err(AppError::from_anyhow)?;
+        let txn = self.db.begin().await.map_err(map_withdrawal_db_error)?;
 
         let withdrawal = if txn.get_database_backend() == DbBackend::Postgres {
             withdrawal_entity::Entity::find_by_id(withdrawal_id)
@@ -131,7 +131,7 @@ impl WithdrawalService {
                 .one(&txn)
                 .await
         }
-        .map_err(AppError::from_anyhow)?
+        .map_err(map_withdrawal_db_error)?
         .ok_or_else(|| AppError::NotFound("withdrawal not found".into()))?;
         if withdrawal.status != "pending" {
             return Err(AppError::Conflict(
@@ -147,12 +147,12 @@ impl WithdrawalService {
             let creator = creator_entity::Entity::find_by_id(creator_id)
                 .one(&txn)
                 .await
-                .map_err(AppError::from_anyhow)?
+                .map_err(map_withdrawal_db_error)?
                 .ok_or_else(|| AppError::NotFound("creator profile not found".into()))?;
             let user = user_entity::Entity::find_by_id(creator.user_id)
                 .one(&txn)
                 .await
-                .map_err(AppError::from_anyhow)?
+                .map_err(map_withdrawal_db_error)?
                 .ok_or_else(|| AppError::NotFound("creator user not found".into()))?;
 
             let amount = positive_money(withdrawal_amount, "withdrawal amount")?;
@@ -163,7 +163,7 @@ impl WithdrawalService {
             active_user
                 .update(&txn)
                 .await
-                .map_err(AppError::from_anyhow)?;
+                .map_err(map_withdrawal_db_error)?;
             ("rejected", None)
         };
 
@@ -186,7 +186,7 @@ impl WithdrawalService {
             .filter(withdrawal_entity::Column::Status.eq("pending"))
             .exec(&txn)
             .await
-            .map_err(AppError::from_anyhow)?;
+            .map_err(map_withdrawal_db_error)?;
         if updated.rows_affected != 1 {
             return Err(AppError::Conflict(
                 "withdrawal has already been reviewed".into(),
@@ -196,10 +196,23 @@ impl WithdrawalService {
         let withdrawal = withdrawal_entity::Entity::find_by_id(withdrawal_id)
             .one(&txn)
             .await
-            .map_err(AppError::from_anyhow)?
+            .map_err(map_withdrawal_db_error)?
             .ok_or_else(|| AppError::NotFound("withdrawal not found".into()))?;
-        txn.commit().await.map_err(AppError::from_anyhow)?;
+        txn.commit().await.map_err(map_withdrawal_db_error)?;
         Ok(to_dto(withdrawal))
+    }
+}
+
+fn map_withdrawal_db_error(error: sea_orm::DbErr) -> AppError {
+    let message = error.to_string().to_lowercase();
+    if message.contains("database is locked")
+        || message.contains("database table is locked")
+        || message.contains("database is busy")
+        || message.contains("deadlock")
+    {
+        AppError::Conflict("withdrawal review is already in progress; retry".into())
+    } else {
+        AppError::Internal(anyhow::Error::new(error))
     }
 }
 

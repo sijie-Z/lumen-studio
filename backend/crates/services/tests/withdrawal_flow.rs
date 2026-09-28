@@ -119,3 +119,48 @@ async fn withdrawal_apply_review_and_refund_flow() {
     let missing_creator = service.apply(999, Decimal::new(1, 0), None).await;
     assert!(matches!(missing_creator, Err(AppError::Forbidden(_))));
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn concurrent_rejection_returns_conflict_and_refunds_once() {
+    let db = db::connect("sqlite::memory:").await.unwrap();
+    db::migrations::run(&db).await.unwrap();
+    insert_user(&db, 1, Decimal::new(1000_00, 2)).await;
+    insert_creator(&db, 1, 1).await;
+
+    let service = WithdrawalService::new(db.clone());
+    let withdrawal = service
+        .apply(1, Decimal::new(200_00, 2), None)
+        .await
+        .unwrap();
+
+    let left_service = service.clone();
+    let right_service = service.clone();
+    let (left_result, right_result) = tokio::join!(
+        left_service.review(withdrawal.id, 1, false, Some("left".into())),
+        right_service.review(withdrawal.id, 1, false, Some("right".into()))
+    );
+
+    let success_count = [&left_result, &right_result]
+        .iter()
+        .filter(|result| result.is_ok())
+        .count();
+    assert_eq!(success_count, 1);
+
+    let conflict = left_result
+        .as_ref()
+        .err()
+        .or_else(|| right_result.as_ref().err())
+        .expect("one review must conflict");
+    assert!(
+        matches!(conflict, AppError::Conflict(_)),
+        "expected conflict, got {conflict:?}"
+    );
+
+    let creator_user = user_entity::Entity::find_by_id(1)
+        .one(&db)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(creator_user.balance, Decimal::new(1000_00, 2));
+    assert_eq!(service.list_for_creator(1).await.unwrap().len(), 1);
+}

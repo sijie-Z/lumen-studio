@@ -1,5 +1,5 @@
 use crate::payment_service::PaymentService;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use common::AppError;
 use db::entities::{
     appointment as appt_entity, payment as payment_entity, service as service_entity,
@@ -84,15 +84,16 @@ impl AppointmentService {
             ));
         }
 
-        let slot = app_core::TimeSlot::new(input.start_time, input.end_time)
-            .map_err(|e| AppError::BadRequest(e.to_string()))?;
         if let Some(duration) = service.duration {
-            if slot.duration_minutes() != i64::from(duration) {
+            let requested_duration = input.end_time.signed_duration_since(input.start_time);
+            if requested_duration != ChronoDuration::minutes(i64::from(duration)) {
                 return Err(AppError::BadRequest(format!(
                     "appointment duration must be exactly {duration} minutes"
                 )));
             }
         }
+        let slot = app_core::TimeSlot::new(input.start_time, input.end_time)
+            .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
         let conflict = appt_entity::Entity::find()
             .filter(
@@ -483,6 +484,20 @@ mod tests {
             )
             .await;
         assert!(matches!(wrong_duration, Err(AppError::BadRequest(_))));
+
+        let second_level_bypass = appointments
+            .create(
+                2,
+                CreateAppointmentInput {
+                    service_id: service.id,
+                    start_time: start + Duration::days(3),
+                    end_time: start + Duration::days(3) + Duration::seconds(7_259),
+                    location: None,
+                    notes: None,
+                },
+            )
+            .await;
+        assert!(matches!(second_level_bypass, Err(AppError::BadRequest(_))));
 
         let forbidden = appointments
             .transition(2, None, created.id, "confirmed".into())

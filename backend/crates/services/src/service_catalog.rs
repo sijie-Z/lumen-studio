@@ -121,6 +121,13 @@ impl ServiceCatalog {
                 "price must be greater than zero".into(),
             ));
         }
+        if let Some(duration) = input.duration {
+            if !(60..=480).contains(&duration) {
+                return Err(AppError::BadRequest(
+                    "duration must be between 60 and 480 minutes".into(),
+                ));
+            }
+        }
 
         let service_type = type_entity::Entity::find_by_id(input.type_id)
             .one(&self.db)
@@ -381,6 +388,26 @@ mod tests {
                 )
                 .await
                 .unwrap();
+        }
+
+        for duration in [30, 600] {
+            let result = catalog
+                .create(
+                    1,
+                    CreateServiceInput {
+                        type_id: 999,
+                        title: format!("Invalid duration {duration}"),
+                        description: None,
+                        price: Decimal::new(100_00, 2),
+                        duration: Some(duration),
+                        cover_image_url: None,
+                        location: None,
+                        tags: None,
+                        options: None,
+                    },
+                )
+                .await;
+            assert!(matches!(result, Err(AppError::BadRequest(_))));
         }
 
         let (items, total) = catalog

@@ -119,6 +119,12 @@
       "reason": "Public defaults and read-before-write checks allowed privilege forgery and duplicate financial side effects.",
       "impact": "JWT_SECRET is mandatory and strong; AI chat is authenticated and bounded; withdrawal review uses a conditional state transition with Postgres row locking; disabled users are rejected on every authenticated request; public DTOs expose only public fields.",
       "date": "2026-09-28 18:36"
+    },
+    {
+      "title": "Validation mirrors persisted contracts",
+      "reason": "Minute truncation and unbounded service durations allowed bookings that could not match the configured service contract.",
+      "impact": "Appointment duration compares exact signed duration against the service duration; service creation accepts duration only in the 60-480 minute booking range; SQLite lock, busy, and deadlock errors map to retryable 409 conflicts at the shared error boundary.",
+      "date": "2026-09-28 19:28"
     }
   ]
 }

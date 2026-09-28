@@ -26,26 +26,26 @@
 - [x] Archive legacy code under legacy/
 - [x] Introduce first-class customer/creator capabilities without blocking creator onboarding
 - [x] Address adversarial security and consistency findings
+- [x] Close remaining validation and concurrency gaps
 
 ## Recent Changes
+- backend/crates/api/src/routes/mod.rs
+- backend/crates/services/tests/withdrawal_flow.rs
+- backend/crates/common/src/error.rs
+- backend/crates/services/src/service_catalog.rs
 - backend/crates/services/src/review_service.rs
 - backend/crates/services/src/creator_service.rs
 - backend/crates/api/src/routes/service_routes.rs
 - backend/crates/api/src/routes/works.rs
 - backend/crates/services/src/auth_service.rs
 - backend/crates/services/src/appointment_service.rs
-- backend/crates/services/src/withdrawal_service.rs
-- backend/crates/ai/src/chat.rs
-- backend/crates/api/src/middleware/auth.rs
-- backend/crates/api/src/main.rs
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
+- smoke test still writes to main photography.db
 - Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents
+- Browser-level three-role routing E2E after roles response change is still pending
 - Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment
-- Appointment duration validation truncates seconds, so 120m59s passes for a 120-minute service
-- Service creation accepts durations outside the 60-480 minute appointment slot range
-- SQLite concurrent withdrawal review returns 500 database-is-locked instead of 409; balance remains correct
 
 ## Next Step
-- Fix exact duration comparison, enforce service duration bounds, and normalize/retry SQLite lock conflicts; then rerun the adversarial audit and full E2E suite
+- Submit for adversarial re-review after exact duration validation, service duration bounds, and SQLite deadlock-to-409 mapping

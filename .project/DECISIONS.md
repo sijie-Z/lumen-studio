@@ -160,3 +160,11 @@
 
 *2026-09-28 18:36*
 
+## ADR-021: Validation mirrors persisted contracts
+
+**Reason**: Minute truncation and unbounded service durations allowed bookings that could not match the configured service contract.
+
+**Impact**: Appointment duration compares exact signed duration against the service duration; service creation accepts duration only in the 60-480 minute booking range; SQLite lock, busy, and deadlock errors map to retryable 409 conflicts at the shared error boundary.
+
+*2026-09-28 19:28*
+

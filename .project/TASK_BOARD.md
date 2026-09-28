@@ -33,4 +33,5 @@
 - Browser regression for pagination and full flow
 - Archive legacy code under legacy/
 - Address adversarial security and consistency findings
+- Close remaining validation and concurrency gaps
 

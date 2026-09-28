@@ -1,15 +1,15 @@
 {
   "recent_files": [
+    "backend/crates/api/src/routes/mod.rs",
+    "backend/crates/services/tests/withdrawal_flow.rs",
+    "backend/crates/common/src/error.rs",
+    "backend/crates/services/src/service_catalog.rs",
     "backend/crates/services/src/review_service.rs",
     "backend/crates/services/src/creator_service.rs",
     "backend/crates/api/src/routes/service_routes.rs",
     "backend/crates/api/src/routes/works.rs",
     "backend/crates/services/src/auth_service.rs",
-    "backend/crates/services/src/appointment_service.rs",
-    "backend/crates/services/src/withdrawal_service.rs",
-    "backend/crates/ai/src/chat.rs",
-    "backend/crates/api/src/middleware/auth.rs",
-    "backend/crates/api/src/main.rs"
+    "backend/crates/services/src/appointment_service.rs"
   ],
   "known_issues": [
     "Rust MSVC linker missing — need VS Build Tools or GNU toolchain",
@@ -18,7 +18,7 @@
     "Browser-level three-role routing E2E after roles response change is still pending",
     "Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment"
   ],
-  "next_step": "Review the fixes with the adversarial supervisor, then run browser-level regression against the hardened auth, AI, service lifecycle, and withdrawal flows",
+  "next_step": "Submit for adversarial re-review after exact duration validation, service duration bounds, and SQLite deadlock-to-409 mapping",
   "branch": "main",
   "active_work": [
     {
@@ -111,6 +111,10 @@
     },
     {
       "name": "Address adversarial security and consistency findings",
+      "status": "done"
+    },
+    {
+      "name": "Close remaining validation and concurrency gaps",
       "status": "done"
     }
   ]
