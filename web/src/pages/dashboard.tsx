@@ -1,11 +1,14 @@
 import { createQuery, useQueryClient } from "@tanstack/solid-query";
 import {
+  BarChart3,
   CalendarDays,
   CloudUpload,
   Image as ImageIcon,
   Sparkles,
+  Star,
   Store,
   CalendarClock,
+  TrendingUp,
   Wallet,
   User
 } from "lucide-solid";
@@ -29,7 +32,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Input } from "../components/ui/input";
 import { EmptyState } from "../components/onboarding/empty-state";
 import { StepGuide, type GuideStep } from "../components/onboarding/step-guide";
+import { ErrorState, LoadingState } from "../components/ui/state";
 import { applyWithdrawal, listMyWithdrawals } from "../lib/withdrawal-api";
+import {
+  getCreatorAnalytics,
+  type AppointmentStatusCountDto,
+  type RatingDistributionDto,
+  type RevenueByMonthDto
+} from "../lib/analytics-api";
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -89,6 +99,11 @@ export default function Dashboard() {
   const myProfile = createMemo(() =>
     creators.data?.find((item) => item.user_id === me.data?.id)
   );
+  const analytics = createQuery(() => ({
+    queryKey: ["creator-analytics", myProfile()?.id] as const,
+    queryFn: getCreatorAnalytics,
+    enabled: isAuthenticated() && Boolean(myProfile())
+  }));
   const myWorks = createMemo(() =>
     (works.data ?? []).filter((item) => item.user_id === me.data?.id)
   );
@@ -301,6 +316,105 @@ export default function Dashboard() {
             description="按顺序完成资料、作品、服务和首单。"
             steps={creatorSteps()}
           />
+        </Show>
+
+        <Show when={myProfile()}>
+          <section id="creator-analytics" class="mt-10">
+            <div class="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+              <div class="flex items-center gap-3">
+                <span class="grid size-11 place-items-center rounded-lg bg-amber/15 text-amber">
+                  <BarChart3 size={20} />
+                </span>
+                <div>
+                  <h2 class="font-display text-2xl font-semibold">数据概览</h2>
+                  <p class="mt-1 text-sm text-muted">结算收入、预约履约和客户评价的实时汇总</p>
+                </div>
+              </div>
+              <Badge variant="outline">近 6 个月</Badge>
+            </div>
+
+            <Show when={analytics.isPending}>
+              <LoadingState title="正在计算经营数据" description="收入、预约和评价统计马上就好。" />
+            </Show>
+            <Show when={analytics.isError}>
+              <ErrorState
+                title="经营数据加载失败"
+                description="暂时无法获取统计数据，请稍后重试。"
+                onRetry={() => void analytics.refetch()}
+              />
+            </Show>
+            <Show when={analytics.data}>
+              <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                <AnalyticsMetric
+                  label="累计结算收入"
+                  value={`¥${formatMoney(analytics.data!.total_income)}`}
+                  hint="平台结算后的创作者收入"
+                  tone="text-teal"
+                />
+                <AnalyticsMetric
+                  label="总预约"
+                  value={String(analytics.data!.total_appointments)}
+                  hint={`已完成 ${analytics.data!.completed_appointments} 单`}
+                />
+                <AnalyticsMetric
+                  label="完成率"
+                  value={`${formatDecimal(analytics.data!.completion_rate)}%`}
+                  hint={`待处理 ${analytics.data!.pending_appointments} 单`}
+                  tone="text-amber"
+                />
+                <AnalyticsMetric
+                  label="平均评分"
+                  value={formatDecimal(analytics.data!.avg_rating, 1)}
+                  hint={`${analytics.data!.review_count} 条有效评价`}
+                  tone="text-coral"
+                />
+                <AnalyticsMetric
+                  label="待审核提现"
+                  value={`¥${formatMoney(analytics.data!.pending_withdrawal_amount)}`}
+                  hint="已申请、等待管理员处理"
+                />
+              </div>
+
+              <div class="mt-6 grid gap-6 xl:grid-cols-[1.35fr_1fr]">
+                <Card>
+                  <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                      <TrendingUp size={18} class="text-amber" />
+                      近 6 个月结算收入
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <RevenueByMonthChart items={analytics.data!.revenue_by_month} />
+                  </CardContent>
+                </Card>
+
+                <div class="grid gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle class="flex items-center gap-2">
+                        <CalendarClock size={18} class="text-teal" />
+                        预约状态分布
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <StatusBreakdownChart items={analytics.data!.appointments_by_status} />
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle class="flex items-center gap-2">
+                        <Star size={18} class="text-coral" />
+                        评分分布
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <RatingDistributionChart items={analytics.data!.rating_distribution} />
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </Show>
+          </section>
         </Show>
 
         <div class="mt-10 grid gap-6 lg:grid-cols-[360px_1fr]">
@@ -751,6 +865,143 @@ export default function Dashboard() {
       <Assistant />
     </div>
   );
+}
+
+function AnalyticsMetric(props: {
+  label: string;
+  value: string;
+  hint: string;
+  tone?: string;
+}) {
+  return (
+    <Card>
+      <CardContent class="p-5">
+        <p class="text-xs text-muted">{props.label}</p>
+        <p class={`mt-3 font-display text-2xl font-semibold ${props.tone ?? "text-paper"}`}>
+          {props.value}
+        </p>
+        <p class="mt-2 text-xs text-muted">{props.hint}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RevenueByMonthChart(props: { items: RevenueByMonthDto[] }) {
+  const max = () => Math.max(...props.items.map((item) => Number(item.amount)), 0);
+  return (
+    <div class="flex h-64 items-end gap-2">
+      <For each={props.items}>
+        {(item) => {
+          const height = () => {
+            const value = Number(item.amount);
+            if (value <= 0 || max() <= 0) return 0;
+            return Math.max((value / max()) * 100, 6);
+          };
+          return (
+            <div class="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
+              <span class="text-[10px] text-muted">{formatCompactMoney(item.amount)}</span>
+              <div
+                class="w-full rounded-t-md bg-amber transition-all duration-500"
+                style={{ height: `${height()}%` }}
+                title={`${formatMonthLabel(item.month)} ¥${formatMoney(item.amount)}`}
+              />
+              <span class="text-[11px] text-muted">{formatMonthLabel(item.month)}</span>
+            </div>
+          );
+        }}
+      </For>
+    </div>
+  );
+}
+
+function StatusBreakdownChart(props: { items: AppointmentStatusCountDto[] }) {
+  const max = () => Math.max(...props.items.map((item) => item.count), 1);
+  return (
+    <div class="space-y-4">
+      <For each={props.items}>
+        {(item) => (
+          <div>
+            <div class="mb-2 flex items-center justify-between gap-3 text-sm">
+              <span class="text-muted">{appointmentStatusLabel(item.status)}</span>
+              <span class="font-medium">{item.count}</span>
+            </div>
+            <div class="h-2 overflow-hidden rounded-full bg-line/60">
+              <div
+                class="h-full rounded-full bg-teal transition-all duration-500"
+                style={{ width: `${(item.count / max()) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </For>
+    </div>
+  );
+}
+
+function RatingDistributionChart(props: { items: RatingDistributionDto[] }) {
+  const max = () => Math.max(...props.items.map((item) => item.count), 1);
+  return (
+    <div class="space-y-4">
+      <For each={[5, 4, 3, 2, 1]}>
+        {(rating) => {
+          const count = () => props.items.find((item) => item.rating === rating)?.count ?? 0;
+          return (
+            <div class="flex items-center gap-3">
+              <span class="flex w-12 items-center gap-1 text-xs text-muted">
+                {rating}
+                <Star size={12} class="text-coral" />
+              </span>
+              <div class="h-2 flex-1 overflow-hidden rounded-full bg-line/60">
+                <div
+                  class="h-full rounded-full bg-coral transition-all duration-500"
+                  style={{ width: `${(count() / max()) * 100}%` }}
+                />
+              </div>
+              <span class="w-7 text-right text-xs text-muted">{count()}</span>
+            </div>
+          );
+        }}
+      </For>
+    </div>
+  );
+}
+
+function formatMoney(value: string | number) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "0.00";
+  return amount.toLocaleString("zh-CN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+function formatCompactMoney(value: string | number) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return "¥0";
+  return `¥${Math.round(amount).toLocaleString("zh-CN")}`;
+}
+
+function formatDecimal(value: string | number, digits = 2) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "0";
+  return amount.toFixed(digits);
+}
+
+function formatMonthLabel(month: string) {
+  const [, monthPart] = month.split("-");
+  return monthPart ? `${Number(monthPart)}月` : month;
+}
+
+function appointmentStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    pending: "待支付",
+    confirmed: "已确认",
+    ongoing: "进行中",
+    completed: "已完成",
+    cancelled: "已取消",
+    refunded: "已退款"
+  };
+  return labels[status] ?? status;
 }
 
 function StatusBadge(props: { status: string }) {

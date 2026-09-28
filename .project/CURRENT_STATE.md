@@ -32,15 +32,15 @@
 - [x] Finish Lumen Studio placeholder rebrand
 - [x] Verify Lumen Studio rebrand with four isolated browser regressions
 - [x] Stabilize browser regressions by serving the production Vite build
+- [x] Creator analytics dashboard: settled income, appointment completion, ratings, status and monthly revenue
 
 ## Recent Changes
-- backend/crates/ai/src/chat.rs
-- web/src/pages/service-detail.tsx
-- web/scripts/test_runtime.py
-- web/scripts/regression2_e2e.py
-- web/scripts/regression3_e2e.py
-- web/scripts/onboarding_notification_e2e.py
-- web/scripts/withdrawal_e2e.py
+- backend/crates/services/src/creator_analytics_service.rs
+- backend/crates/api/src/routes/creator_analytics.rs
+- backend/crates/api/src/state.rs
+- backend/crates/api/src/main.rs
+- web/src/lib/analytics-api.ts
+- web/src/pages/dashboard.tsx
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
@@ -48,4 +48,4 @@
 - Long browser flows should use the production preview test runtime because the Vite dev server is resource-heavy on this Windows host
 
 ## Next Step
-- Continue product-level UI and workflow polish while preserving the verified Lumen Studio baseline
+- Run browser-level visual and interaction checks for the creator analytics dashboard, including empty and populated states

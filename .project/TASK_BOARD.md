@@ -38,4 +38,5 @@
 - Finish Lumen Studio placeholder rebrand
 - Verify Lumen Studio rebrand with four isolated browser regressions
 - Stabilize browser regressions by serving the production Vite build
+- Creator analytics dashboard: settled income, appointment completion, ratings, status and monthly revenue
 

@@ -229,3 +229,13 @@
 - **Risks**: Playwright uses a fresh browser process per script and the production preview build; future script changes should keep `python -X utf8` on Windows or avoid encoding-sensitive selectors.
 - **Next**: Continue product-level UI and workflow polish on top of the verified Lumen Studio brand baseline
 
+### [2026-09-29 00:41] main — Creator analytics dashboard
+
+- **Task**: Creator analytics dashboard
+- **Branch**: main
+- **Files**: backend/crates/services/src/creator_analytics_service.rs; backend/crates/api/src/routes/creator_analytics.rs; backend/crates/api/src/state.rs; backend/crates/api/src/main.rs; backend/crates/api/src/routes/mod.rs; backend/crates/services/src/lib.rs; web/src/lib/analytics-api.ts; web/src/pages/dashboard.tsx; .project
+- **Decision**: ADR-023; cumulative creator income uses `creator_profiles.total_income`, while monthly revenue uses successful settlement payment rows
+- **Verification**: `cargo test --workspace` passed 59 tests, including the new analytics aggregation and route tests; `pnpm build` passed with 1847 modules
+- **Risks**: The dashboard has not yet been checked in a populated browser session; empty and zero-value charts are covered by the component logic and route test
+- **Next**: Run browser-level visual and interaction checks for the creator analytics dashboard, then continue product-level UI polish
+

@@ -2,6 +2,7 @@ mod admin;
 mod ai;
 mod appointments;
 mod auth;
+mod creator_analytics;
 mod creators;
 mod health;
 mod notifications;
@@ -21,6 +22,7 @@ pub fn router() -> Router<AppState> {
         .nest("/api/v1/auth", auth::router())
         .nest("/api/v1/ai", ai::router())
         .nest("/api/v1", creators::router())
+        .nest("/api/v1", creator_analytics::router())
         .nest("/api/v1", service_routes::router())
         .nest("/api/v1", appointments::router())
         .nest("/api/v1", payments::router())
@@ -68,6 +70,9 @@ mod tests {
             chat: ::ai::ChatClient::from_env(),
             works: WorkService::new(db.clone()),
             creators: CreatorService::new(db.clone()),
+            analytics: services::creator_analytics_service::CreatorAnalyticsService::new(
+                db.clone(),
+            ),
             services: ServiceCatalog::new(db.clone()),
             appointments: AppointmentService::new(db.clone()),
             payments: PaymentService::new(db.clone()),
@@ -401,6 +406,69 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn creator_analytics_requires_auth_and_creator_profile() {
+        let response = test_app()
+            .await
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/creator/analytics")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let (app, db) = test_app_with_db().await;
+        let user = register_user(&app, "analytics_route_user", None).await;
+        let user_id = user["data"]["id"].as_i64().unwrap() as i32;
+        let token = login_token(&app, "analytics_route_user").await;
+
+        let without_profile = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/creator/analytics")
+                    .header("authorization", format!("Bearer {token}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(without_profile.status(), StatusCode::FORBIDDEN);
+
+        CreatorService::new(db)
+            .ensure_profile(
+                user_id,
+                services::creator_service::UpsertProfileInput {
+                    introduction: None,
+                    bio: None,
+                    service_areas: None,
+                    portfolio_url: None,
+                },
+            )
+            .await
+            .unwrap();
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/creator/analytics")
+                    .header("authorization", format!("Bearer {token}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = response_json(response).await;
+        assert_eq!(body["data"]["total_appointments"], 0);
+        assert_eq!(
+            body["data"]["revenue_by_month"].as_array().unwrap().len(),
+            6
+        );
     }
     #[tokio::test]
     async fn paginated_public_routes_accept_numeric_query_params() {

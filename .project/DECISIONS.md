@@ -176,3 +176,11 @@
 
 *2026-09-28 20:59*
 
+## ADR-023: Creator analytics aggregates settled income and domain records
+
+**Reason**: Creator-facing analytics must distinguish paid GMV from income actually available to the creator and must keep each dashboard metric tied to its authoritative domain table.
+
+**Impact**: Total income comes from `creator_profiles.total_income`, monthly revenue comes from successful `payment_type=settlement` rows, appointment rates come from `appointments`, rating metrics come from `reviews` plus the cached `creator_profiles.avg_rating`, and pending withdrawal total comes from pending `withdrawals`.
+
+*2026-09-29 00:41*
+

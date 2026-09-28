@@ -3,6 +3,7 @@ use sea_orm::DatabaseConnection;
 use services::admin_service::AdminService;
 use services::appointment_service::AppointmentService;
 use services::auth_service::AuthService;
+use services::creator_analytics_service::CreatorAnalyticsService;
 use services::creator_service::CreatorService;
 use services::notification_service::NotificationService;
 use services::payment_service::PaymentService;
@@ -19,6 +20,7 @@ pub struct AppState {
     pub chat: ChatClient,
     pub works: WorkService,
     pub creators: CreatorService,
+    pub analytics: CreatorAnalyticsService,
     pub services: ServiceCatalog,
     pub appointments: AppointmentService,
     pub payments: PaymentService,

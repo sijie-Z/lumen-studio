@@ -1,6 +1,7 @@
 pub mod admin_service;
 pub mod appointment_service;
 pub mod auth_service;
+pub mod creator_analytics_service;
 pub mod creator_service;
 pub mod dto;
 pub mod notification_service;
