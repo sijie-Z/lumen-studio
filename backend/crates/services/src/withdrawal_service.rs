@@ -4,9 +4,10 @@ use db::entities::{
     creator_profile as creator_entity, user as user_entity, withdrawal as withdrawal_entity,
 };
 use rust_decimal::Decimal;
+use sea_orm::sea_query::Expr;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
-    QueryOrder, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, DbBackend, EntityTrait,
+    IntoActiveModel, QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -120,11 +121,18 @@ impl WithdrawalService {
         let now = Utc::now();
         let txn = self.db.begin().await.map_err(AppError::from_anyhow)?;
 
-        let withdrawal = withdrawal_entity::Entity::find_by_id(withdrawal_id)
-            .one(&txn)
-            .await
-            .map_err(AppError::from_anyhow)?
-            .ok_or_else(|| AppError::NotFound("withdrawal not found".into()))?;
+        let withdrawal = if txn.get_database_backend() == DbBackend::Postgres {
+            withdrawal_entity::Entity::find_by_id(withdrawal_id)
+                .lock_exclusive()
+                .one(&txn)
+                .await
+        } else {
+            withdrawal_entity::Entity::find_by_id(withdrawal_id)
+                .one(&txn)
+                .await
+        }
+        .map_err(AppError::from_anyhow)?
+        .ok_or_else(|| AppError::NotFound("withdrawal not found".into()))?;
         if withdrawal.status != "pending" {
             return Err(AppError::Conflict(
                 "withdrawal has already been reviewed".into(),
@@ -133,14 +141,8 @@ impl WithdrawalService {
 
         let creator_id = withdrawal.creator_id;
         let withdrawal_amount = withdrawal.amount;
-        let mut active = withdrawal.into_active_model();
-        active.reviewed_by = Set(Some(admin_user_id));
-        active.reviewed_at = Set(Some(now));
-        active.review_note = Set(note);
-
-        if approve {
-            active.status = Set("completed".into());
-            active.completed_at = Set(Some(now));
+        let (status, completed_at) = if approve {
+            ("completed", Some(now))
         } else {
             let creator = creator_entity::Entity::find_by_id(creator_id)
                 .one(&txn)
@@ -162,10 +164,40 @@ impl WithdrawalService {
                 .update(&txn)
                 .await
                 .map_err(AppError::from_anyhow)?;
-            active.status = Set("rejected".into());
+            ("rejected", None)
+        };
+
+        let updated = withdrawal_entity::Entity::update_many()
+            .col_expr(
+                withdrawal_entity::Column::ReviewedBy,
+                Expr::value(admin_user_id),
+            )
+            .col_expr(
+                withdrawal_entity::Column::ReviewedAt,
+                Expr::value(Some(now)),
+            )
+            .col_expr(withdrawal_entity::Column::ReviewNote, Expr::value(note))
+            .col_expr(withdrawal_entity::Column::Status, Expr::value(status))
+            .col_expr(
+                withdrawal_entity::Column::CompletedAt,
+                Expr::value(completed_at),
+            )
+            .filter(withdrawal_entity::Column::Id.eq(withdrawal_id))
+            .filter(withdrawal_entity::Column::Status.eq("pending"))
+            .exec(&txn)
+            .await
+            .map_err(AppError::from_anyhow)?;
+        if updated.rows_affected != 1 {
+            return Err(AppError::Conflict(
+                "withdrawal has already been reviewed".into(),
+            ));
         }
 
-        let withdrawal = active.update(&txn).await.map_err(AppError::from_anyhow)?;
+        let withdrawal = withdrawal_entity::Entity::find_by_id(withdrawal_id)
+            .one(&txn)
+            .await
+            .map_err(AppError::from_anyhow)?
+            .ok_or_else(|| AppError::NotFound("withdrawal not found".into()))?;
         txn.commit().await.map_err(AppError::from_anyhow)?;
         Ok(to_dto(withdrawal))
     }

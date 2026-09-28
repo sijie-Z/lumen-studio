@@ -33,6 +33,10 @@ export async function listWorksPage(
   return request<PaginatedResponse<WorkDto>>(`/works${suffix}`);
 }
 
+export async function getWork(id: number | string): Promise<WorkDto> {
+  return request<WorkDto>(`/works/${id}`);
+}
+
 export async function listWorks(): Promise<WorkDto[]> {
   const response = await listWorksPage({ page: 1, page_size: 100 });
   return response.items;

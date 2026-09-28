@@ -53,6 +53,14 @@ impl AuthService {
         }
 
         let username = input.username.trim().to_lowercase();
+        let email = input
+            .email
+            .map(|value| value.trim().to_lowercase())
+            .filter(|value| !value.is_empty());
+        let phone = input
+            .phone
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
         let existing = user_entity::Entity::find()
             .filter(user_entity::Column::Username.eq(&username))
             .one(&self.db)
@@ -61,6 +69,26 @@ impl AuthService {
         if existing.is_some() {
             return Err(AppError::Conflict("username already exists".into()));
         }
+        if let Some(email) = email.as_deref() {
+            let existing = user_entity::Entity::find()
+                .filter(user_entity::Column::Email.eq(email))
+                .one(&self.db)
+                .await
+                .map_err(AppError::from_anyhow)?;
+            if existing.is_some() {
+                return Err(AppError::Conflict("email already exists".into()));
+            }
+        }
+        if let Some(phone) = phone.as_deref() {
+            let existing = user_entity::Entity::find()
+                .filter(user_entity::Column::Phone.eq(phone))
+                .one(&self.db)
+                .await
+                .map_err(AppError::from_anyhow)?;
+            if existing.is_some() {
+                return Err(AppError::Conflict("phone already exists".into()));
+            }
+        }
 
         let password_hash = hash_password(&input.password)?;
         let now = Utc::now();
@@ -68,8 +96,8 @@ impl AuthService {
             username: Set(username),
             password_hash: Set(password_hash),
             nickname: Set(input.nickname.unwrap_or_else(|| "anonymous".into())),
-            email: Set(input.email.filter(|v| !v.trim().is_empty())),
-            phone: Set(input.phone.filter(|v| !v.trim().is_empty())),
+            email: Set(email),
+            phone: Set(phone),
             status: Set("active".into()),
             role: Set("user".into()),
             verification_status: Set("unverified".into()),
@@ -79,7 +107,7 @@ impl AuthService {
         }
         .insert(&self.db)
         .await
-        .map_err(AppError::from_anyhow)?;
+        .map_err(map_user_insert_error)?;
 
         self.to_user_dto(model).await
     }
@@ -209,6 +237,15 @@ fn roles_for(user_role: &str, has_creator_profile: bool) -> Vec<String> {
     roles
 }
 
+fn map_user_insert_error(error: sea_orm::DbErr) -> AppError {
+    let message = error.to_string();
+    if message.contains("UNIQUE constraint failed") || message.contains("duplicate key value") {
+        AppError::Conflict("username, email, or phone already exists".into())
+    } else {
+        AppError::Internal(anyhow::Error::new(error))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -250,6 +287,28 @@ mod tests {
             })
             .await;
         assert!(matches!(duplicate, Err(AppError::Conflict(_))));
+
+        let duplicate_email = service
+            .register(RegisterInput {
+                username: "alice-email".into(),
+                password: "password123".into(),
+                email: Some("ALICE@example.com".into()),
+                phone: None,
+                nickname: None,
+            })
+            .await;
+        assert!(matches!(duplicate_email, Err(AppError::Conflict(_))));
+
+        let duplicate_phone = service
+            .register(RegisterInput {
+                username: "alice-phone".into(),
+                password: "password123".into(),
+                email: None,
+                phone: Some("13812341234".into()),
+                nickname: None,
+            })
+            .await;
+        assert!(matches!(duplicate_phone, Err(AppError::Conflict(_))));
 
         let login = service
             .login(LoginInput {

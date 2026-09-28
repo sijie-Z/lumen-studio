@@ -17,7 +17,7 @@ import {
   createService,
   listCreatorAppointments,
   listCreators,
-  listServices,
+  listMyServices,
   listServiceTypes,
   transitionAppointment,
   upsertProfile
@@ -71,7 +71,10 @@ export default function Dashboard() {
   }));
   const creators = createQuery(() => ({ queryKey: ["creators"] as const, queryFn: listCreators }));
   const serviceTypes = createQuery(() => ({ queryKey: ["service-types"] as const, queryFn: listServiceTypes }));
-  const services = createQuery(() => ({ queryKey: ["services"] as const, queryFn: listServices }));
+  const services = createQuery(() => ({
+    queryKey: ["my-services"] as const,
+    queryFn: listMyServices
+  }));
   const creatorAppointments = createQuery(() => ({
     queryKey: ["creator-appointments"] as const,
     queryFn: listCreatorAppointments,
@@ -195,7 +198,7 @@ export default function Dashboard() {
         duration: form.duration ? Number(form.duration) : undefined,
         location: form.location || undefined
       });
-      await queryClient.invalidateQueries({ queryKey: ["services"] });
+      await queryClient.invalidateQueries({ queryKey: ["my-services"] });
       await queryClient.invalidateQueries({ queryKey: ["creators"] });
       setServiceForm({ type_id: form.type_id, title: "", price: "", duration: "", location: "" });
       setServiceMsg("服务已发布");

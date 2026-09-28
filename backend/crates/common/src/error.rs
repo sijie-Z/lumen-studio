@@ -81,10 +81,34 @@ struct ErrorBody {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = self.status_code();
+        let message = self.public_message();
         let body = ErrorBody {
             code: self.code(),
-            message: self.to_string(),
+            message,
         };
         (status, Json(body)).into_response()
+    }
+}
+
+impl AppError {
+    fn public_message(&self) -> String {
+        match self {
+            AppError::Internal(error) => {
+                tracing::error!(error = ?error, "internal server error");
+                "Internal server error".into()
+            }
+            other => other.to_string(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AppError;
+
+    #[test]
+    fn internal_errors_do_not_expose_their_details() {
+        let error = AppError::Internal(anyhow::anyhow!("database password leaked"));
+        assert_eq!(error.public_message(), "Internal server error");
     }
 }

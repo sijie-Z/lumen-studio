@@ -152,3 +152,11 @@
 
 *2026-09-28 16:33*
 
+## ADR-020: Security boundaries fail closed
+
+**Reason**: Public defaults and read-before-write checks allowed privilege forgery and duplicate financial side effects.
+
+**Impact**: JWT_SECRET is mandatory and strong; AI chat is authenticated and bounded; withdrawal review uses a conditional state transition with Postgres row locking; disabled users are rejected on every authenticated request; public DTOs expose only public fields.
+
+*2026-09-28 18:36*
+

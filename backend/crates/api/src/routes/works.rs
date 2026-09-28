@@ -1,7 +1,7 @@
 use crate::middleware::auth::AuthUser;
 use crate::state::AppState;
 use axum::{
-    extract::{Query, State},
+    extract::{Path, Query, State},
     routing::get,
     Json, Router,
 };
@@ -27,7 +27,9 @@ pub struct CreateWorkInput {
 }
 
 pub fn router() -> Router<AppState> {
-    Router::new().route("/works", get(list_works).post(create_work))
+    Router::new()
+        .route("/works", get(list_works).post(create_work))
+        .route("/works/{id}", get(get_work))
 }
 
 async fn list_works(
@@ -49,11 +51,24 @@ async fn list_works(
     ))))
 }
 
+async fn get_work(
+    State(state): State<AppState>,
+    Path(id): Path<i32>,
+) -> Result<Json<ApiResponse<WorkDto>>, AppError> {
+    let work = state.works.by_id(id).await?;
+    Ok(Json(ApiResponse::success(work)))
+}
+
 async fn create_work(
     State(state): State<AppState>,
     AuthUser(claims): AuthUser,
     Json(input): Json<CreateWorkInput>,
 ) -> Result<Json<ApiResponse<WorkDto>>, AppError> {
+    if state.creators.by_user_id(claims.sub).await?.is_none() {
+        return Err(AppError::Forbidden(
+            "complete creator profile before publishing works".into(),
+        ));
+    }
     let work = state
         .works
         .create(

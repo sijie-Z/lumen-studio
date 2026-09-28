@@ -14,7 +14,6 @@ use serde::{Deserialize, Serialize};
 pub struct ReviewDto {
     pub id: i32,
     pub appointment_id: i32,
-    pub user_id: i32,
     pub creator_id: i32,
     pub rating: Decimal,
     pub content: Option<String>,
@@ -138,7 +137,6 @@ fn to_dto(model: review_entity::Model) -> ReviewDto {
     ReviewDto {
         id: model.id,
         appointment_id: model.appointment_id,
-        user_id: model.user_id,
         creator_id: model.creator_id,
         rating: model.rating,
         content: model.content,

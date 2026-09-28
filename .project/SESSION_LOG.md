@@ -155,3 +155,10 @@
 - **Summary**: Implemented capability-based roles across auth DTOs, service computation, frontend login routing, route guards, menu visibility, and role labels while preserving customer-to-creator onboarding. cargo test --workspace passed 36 tests; pnpm build passed 1846 modules. Commit pending.
 - **Next**: Run browser-level three-role routing checks after roles changes; verify admin, creator, and customer login destinations plus forbidden route redirects.
 
+### [2026-09-28 18:36] main — Address adversarial security and consistency findings
+
+- **Task**: Address adversarial security and consistency findings
+- **Branch**: main
+- **Summary**: Fixed P0/P1 findings: mandatory strong JWT secret, authenticated and bounded AI chat with server-owned system prompt, atomic withdrawal review with conditional updates and Postgres row locking, unique email/phone conflicts with redacted internal errors, self-booking and duration validation, creator-only work publishing, inactive service hiding plus /services/mine, public DTO field removal, and active-user checks in auth middleware. Added regression tests across ai, common, services, and api. cargo test --workspace passed 35 tests; pnpm build passed 1846 modules; git diff --check passed.
+- **Next**: Review the fixes with the adversarial supervisor, then run browser-level regression against the hardened auth, AI, service lifecycle, and withdrawal flows
+

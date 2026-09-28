@@ -211,6 +211,7 @@ impl ServiceCatalog {
 
     pub async fn by_id(&self, id: i32) -> Result<ServiceDto, AppError> {
         let model = service_entity::Entity::find_by_id(id)
+            .filter(service_entity::Column::IsActive.eq(true))
             .one(&self.db)
             .await
             .map_err(AppError::from_anyhow)?
@@ -413,5 +414,35 @@ mod tests {
             .all(|service| service.location.as_deref() == Some("杭州")));
 
         assert_eq!(service_entity::Entity::find().count(&db).await.unwrap(), 3);
+
+        let service_id = catalog
+            .create(
+                1,
+                CreateServiceInput {
+                    type_id: wedding_type_id,
+                    title: "Inactive service".into(),
+                    description: None,
+                    price: Decimal::new(100_00, 2),
+                    duration: Some(120),
+                    cover_image_url: None,
+                    location: Some("杭州".into()),
+                    tags: None,
+                    options: None,
+                },
+            )
+            .await
+            .unwrap()
+            .id;
+        catalog.set_active(1, service_id, false).await.unwrap();
+        assert!(matches!(
+            catalog.by_id(service_id).await,
+            Err(AppError::NotFound(_))
+        ));
+        assert!(catalog
+            .list_by_creator(1)
+            .await
+            .unwrap()
+            .iter()
+            .any(|service| service.id == service_id && !service.is_active));
     }
 }

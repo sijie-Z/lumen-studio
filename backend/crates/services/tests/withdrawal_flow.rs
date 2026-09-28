@@ -84,6 +84,14 @@ async fn withdrawal_apply_review_and_refund_flow() {
         .unwrap()
         .unwrap();
     assert_eq!(creator_user.balance, Decimal::new(1000_00, 2));
+    let repeated_rejection = service.review(first.id, 2, false, None).await;
+    assert!(matches!(repeated_rejection, Err(AppError::Conflict(_))));
+    let creator_user = user_entity::Entity::find_by_id(1)
+        .one(&db)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(creator_user.balance, Decimal::new(1000_00, 2));
 
     let second = service
         .apply(1, Decimal::new(300_00, 2), None)

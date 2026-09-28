@@ -25,18 +25,19 @@
 - [x] Browser regression for pagination and full flow
 - [x] Archive legacy code under legacy/
 - [x] Introduce first-class customer/creator capabilities without blocking creator onboarding
+- [x] Address adversarial security and consistency findings
 
 ## Recent Changes
-- web/src/pages/dashboard.tsx
-- web/src/components/layout/creator-layout.tsx
-- web/src/components/layout/customer-layout.tsx
-- web/src/components/layout/app-shell.tsx
-- web/src/components/layout/require-role.tsx
-- web/src/pages/login.tsx
-- web/src/lib/auth-api.ts
-- backend/crates/services/src/dto/auth.rs
+- backend/crates/services/src/review_service.rs
+- backend/crates/services/src/creator_service.rs
+- backend/crates/api/src/routes/service_routes.rs
+- backend/crates/api/src/routes/works.rs
 - backend/crates/services/src/auth_service.rs
-- legacy/
+- backend/crates/services/src/appointment_service.rs
+- backend/crates/services/src/withdrawal_service.rs
+- backend/crates/ai/src/chat.rs
+- backend/crates/api/src/middleware/auth.rs
+- backend/crates/api/src/main.rs
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
@@ -46,4 +47,4 @@
 - Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment
 
 ## Next Step
-- Run browser-level three-role routing checks after roles changes; verify admin, creator, and customer login destinations plus forbidden route redirects.
+- Review the fixes with the adversarial supervisor, then run browser-level regression against the hardened auth, AI, service lifecycle, and withdrawal flows

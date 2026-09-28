@@ -1,3 +1,4 @@
+use crate::middleware::auth::AuthUser;
 use crate::state::AppState;
 use ai::{ChatRequest, ChatResponse};
 use axum::{extract::State, routing::post, Json, Router};
@@ -9,6 +10,7 @@ pub fn router() -> Router<AppState> {
 
 async fn chat(
     State(state): State<AppState>,
+    AuthUser(_claims): AuthUser,
     Json(request): Json<ChatRequest>,
 ) -> Result<Json<ApiResponse<ChatResponse>>, AppError> {
     let response = state.chat.chat(&request).await?;

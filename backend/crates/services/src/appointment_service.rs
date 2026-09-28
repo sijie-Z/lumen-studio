@@ -65,19 +65,34 @@ impl AppointmentService {
             return Err(AppError::BadRequest("service is not available".into()));
         }
 
-        // PostgreSQL needs an explicit row lock to serialize bookings for one creator.
-        // SQLite serializes writers at the database level, so the transaction is enough.
-        if txn.get_database_backend() == DbBackend::Postgres {
+        let creator = if txn.get_database_backend() == DbBackend::Postgres {
             db::entities::creator_profile::Entity::find_by_id(service.creator_id)
                 .lock_exclusive()
                 .one(&txn)
                 .await
                 .map_err(AppError::from_anyhow)?
-                .ok_or_else(|| AppError::NotFound("creator profile not found".into()))?;
+        } else {
+            db::entities::creator_profile::Entity::find_by_id(service.creator_id)
+                .one(&txn)
+                .await
+                .map_err(AppError::from_anyhow)?
+        }
+        .ok_or_else(|| AppError::NotFound("creator profile not found".into()))?;
+        if creator.user_id == user_id {
+            return Err(AppError::Forbidden(
+                "creators cannot book their own services".into(),
+            ));
         }
 
         let slot = app_core::TimeSlot::new(input.start_time, input.end_time)
             .map_err(|e| AppError::BadRequest(e.to_string()))?;
+        if let Some(duration) = service.duration {
+            if slot.duration_minutes() != i64::from(duration) {
+                return Err(AppError::BadRequest(format!(
+                    "appointment duration must be exactly {duration} minutes"
+                )));
+            }
+        }
 
         let conflict = appt_entity::Entity::find()
             .filter(
@@ -440,6 +455,34 @@ mod tests {
             )
             .await;
         assert!(matches!(conflict, Err(AppError::Conflict(_))));
+
+        let self_booking = appointments
+            .create(
+                1,
+                CreateAppointmentInput {
+                    service_id: service.id,
+                    start_time: start + Duration::days(1),
+                    end_time: start + Duration::days(1) + Duration::minutes(120),
+                    location: None,
+                    notes: None,
+                },
+            )
+            .await;
+        assert!(matches!(self_booking, Err(AppError::Forbidden(_))));
+
+        let wrong_duration = appointments
+            .create(
+                2,
+                CreateAppointmentInput {
+                    service_id: service.id,
+                    start_time: start + Duration::days(2),
+                    end_time: start + Duration::days(2) + Duration::minutes(480),
+                    location: None,
+                    notes: None,
+                },
+            )
+            .await;
+        assert!(matches!(wrong_duration, Err(AppError::BadRequest(_))));
 
         let forbidden = appointments
             .transition(2, None, created.id, "confirmed".into())

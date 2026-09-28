@@ -14,7 +14,7 @@ import { Badge } from "../components/ui/badge";
 import { EmptyState, ErrorState, LoadingState } from "../components/ui/state";
 import Assistant from "../components/ai/assistant";
 import { listCreators } from "../lib/marketplace-api";
-import { listWorks } from "../lib/works-api";
+import { getWork, listWorks } from "../lib/works-api";
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -29,6 +29,10 @@ function formatDate(value: string) {
 
 export default function WorkDetail() {
   const params = useParams();
+  const workDetail = createQuery(() => ({
+    queryKey: ["work", params.id] as const,
+    queryFn: () => getWork(params.id ?? "")
+  }));
   const works = createQuery(() => ({
     queryKey: ["works"] as const,
     queryFn: listWorks
@@ -38,9 +42,7 @@ export default function WorkDetail() {
     queryFn: listCreators
   }));
 
-  const current = createMemo(() =>
-    (works.data ?? []).find((item) => item.id === Number(params.id))
-  );
+  const current = createMemo(() => workDetail.data);
   const creatorProfile = createMemo(() => {
     const work = current();
     if (!work) return undefined;
@@ -80,14 +82,14 @@ export default function WorkDetail() {
         <Show
           when={current()}
           fallback={
-            works.isLoading ? (
+            workDetail.isLoading ? (
               <LoadingState class="mt-8" title="正在加载作品" description="正在获取作品详情。" />
-            ) : works.isError ? (
+            ) : workDetail.isError ? (
               <ErrorState
                 class="mt-8"
                 title="作品加载失败"
                 description="暂时无法获取作品详情，请稍后再试。"
-                onRetry={() => works.refetch()}
+                onRetry={() => workDetail.refetch()}
               />
             ) : (
               <EmptyState

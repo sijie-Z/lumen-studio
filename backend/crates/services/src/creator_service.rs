@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use common::AppError;
-use db::entities::{creator_profile as profile_entity, CreatorProfileModel};
+use db::entities::{creator_profile as profile_entity, user as user_entity, CreatorProfileModel};
 use rust_decimal::Decimal;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
@@ -12,6 +12,8 @@ use serde::Serialize;
 pub struct CreatorProfileDto {
     pub id: i32,
     pub user_id: i32,
+    pub nickname: String,
+    pub avatar_url: Option<String>,
     pub introduction: Option<String>,
     pub bio: Option<String>,
     pub rating: Decimal,
@@ -21,7 +23,6 @@ pub struct CreatorProfileDto {
     pub portfolio_url: Option<String>,
     pub total_services: i32,
     pub total_appointments: i32,
-    pub total_income: Decimal,
     pub avg_rating: Decimal,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -67,7 +68,7 @@ impl CreatorService {
                 .update(&self.db)
                 .await
                 .map_err(AppError::from_anyhow)?;
-            return Ok(to_dto(updated));
+            return self.to_dto_with_identity(updated).await;
         }
 
         let now = Utc::now();
@@ -93,35 +94,47 @@ impl CreatorService {
         .await
         .map_err(AppError::from_anyhow)?;
 
-        Ok(to_dto(model))
+        self.to_dto_with_identity(model).await
     }
 
     pub async fn by_user_id(&self, user_id: i32) -> Result<Option<CreatorProfileDto>, AppError> {
-        let model = profile_entity::Entity::find()
+        let rows = profile_entity::Entity::find()
             .filter(profile_entity::Column::UserId.eq(user_id))
-            .one(&self.db)
+            .find_with_related(user_entity::Entity)
+            .all(&self.db)
             .await
             .map_err(AppError::from_anyhow)?;
-        Ok(model.map(to_dto))
+        Ok(rows
+            .into_iter()
+            .next()
+            .map(|(model, users)| dto_from_related(model, &users)))
     }
 
     pub async fn by_id(&self, id: i32) -> Result<CreatorProfileDto, AppError> {
-        let model = profile_entity::Entity::find_by_id(id)
-            .one(&self.db)
+        let rows = profile_entity::Entity::find_by_id(id)
+            .find_with_related(user_entity::Entity)
+            .all(&self.db)
             .await
-            .map_err(AppError::from_anyhow)?
+            .map_err(AppError::from_anyhow)?;
+        let (model, users) = rows
+            .into_iter()
+            .next()
             .ok_or_else(|| AppError::NotFound("creator not found".into()))?;
-        Ok(to_dto(model))
+        Ok(dto_from_related(model, &users))
     }
 
     pub async fn list(&self, limit: u64) -> Result<Vec<CreatorProfileDto>, AppError> {
-        let models = profile_entity::Entity::find()
+        let rows = profile_entity::Entity::find()
+            .find_with_related(user_entity::Entity)
             .order_by_desc(profile_entity::Column::Rating)
             .limit(limit.min(100))
             .all(&self.db)
             .await
             .map_err(AppError::from_anyhow)?;
-        Ok(models.into_iter().map(to_dto).collect())
+        Ok(rows
+            .into_iter()
+            .map(|(model, users)| dto_from_related(model, &users))
+            .collect())
     }
 
     pub async fn list_paginated(
@@ -133,14 +146,20 @@ impl CreatorService {
             .count(&self.db)
             .await
             .map_err(AppError::from_anyhow)?;
-        let models = profile_entity::Entity::find()
+        let rows = profile_entity::Entity::find()
+            .find_with_related(user_entity::Entity)
             .order_by_desc(profile_entity::Column::Rating)
             .offset((page.saturating_sub(1)) * page_size)
             .limit(page_size)
             .all(&self.db)
             .await
             .map_err(AppError::from_anyhow)?;
-        Ok((models.into_iter().map(to_dto).collect(), total))
+        Ok((
+            rows.into_iter()
+                .map(|(model, users)| dto_from_related(model, &users))
+                .collect(),
+            total,
+        ))
     }
 
     pub async fn increment_stats(
@@ -169,16 +188,44 @@ impl CreatorService {
             .map_err(AppError::from_anyhow)?;
         Ok(())
     }
+
+    async fn to_dto_with_identity(
+        &self,
+        model: CreatorProfileModel,
+    ) -> Result<CreatorProfileDto, AppError> {
+        let user = user_entity::Entity::find_by_id(model.user_id)
+            .one(&self.db)
+            .await
+            .map_err(AppError::from_anyhow)?;
+        let (nickname, avatar_url) = user
+            .map(|user| (user.nickname, user.avatar_url))
+            .unwrap_or_else(|| ("匿名创作者".into(), None));
+        Ok(to_dto(model, nickname, avatar_url))
+    }
 }
 
 fn clean(value: Option<String>) -> Option<String> {
     value.filter(|v| !v.trim().is_empty())
 }
 
-fn to_dto(model: CreatorProfileModel) -> CreatorProfileDto {
+fn dto_from_related(model: CreatorProfileModel, users: &[user_entity::Model]) -> CreatorProfileDto {
+    let (nickname, avatar_url) = users
+        .first()
+        .map(|user| (user.nickname.clone(), user.avatar_url.clone()))
+        .unwrap_or_else(|| ("匿名创作者".into(), None));
+    to_dto(model, nickname, avatar_url)
+}
+
+fn to_dto(
+    model: CreatorProfileModel,
+    nickname: String,
+    avatar_url: Option<String>,
+) -> CreatorProfileDto {
     CreatorProfileDto {
         id: model.id,
         user_id: model.user_id,
+        nickname,
+        avatar_url,
         introduction: model.introduction,
         bio: model.bio,
         rating: model.rating,
@@ -188,7 +235,6 @@ fn to_dto(model: CreatorProfileModel) -> CreatorProfileDto {
         portfolio_url: model.portfolio_url,
         total_services: model.total_services,
         total_appointments: model.total_appointments,
-        total_income: model.total_income,
         avg_rating: model.avg_rating,
         created_at: model.created_at,
         updated_at: model.updated_at,
@@ -246,5 +292,8 @@ mod tests {
         let (items, total) = service.list_paginated(2, 2).await.unwrap();
         assert_eq!(total, 3);
         assert_eq!(items.len(), 1);
+
+        let json = serde_json::to_value(service.by_id(1).await.unwrap()).unwrap();
+        assert!(json.get("total_income").is_none());
     }
 }

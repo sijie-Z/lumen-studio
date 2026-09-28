@@ -142,6 +142,16 @@
       "status": "done",
       "started": "2026-09-28 15:33",
       "finished": "2026-09-28 15:34"
+    },
+    {
+      "name": "Address adversarial security and consistency findings",
+      "status": "done",
+      "started": "2026-09-28 18:36",
+      "finished": "2026-09-28 18:36"
+    },
+    {
+      "name": "Adversarial re-review and browser regression for hardened security boundaries",
+      "status": "todo"
     }
   ]
 }

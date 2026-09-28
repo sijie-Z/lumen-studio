@@ -3,6 +3,8 @@ import { PaginatedResponse, request } from "./api";
 export interface CreatorProfile {
   id: number;
   user_id: number;
+  nickname: string;
+  avatar_url: string | null;
   introduction: string | null;
   bio: string | null;
   rating: string;
@@ -12,7 +14,6 @@ export interface CreatorProfile {
   portfolio_url: string | null;
   total_services: number;
   total_appointments: number;
-  total_income: string;
   avg_rating: string;
   created_at: string;
   updated_at: string;
@@ -149,6 +150,10 @@ export async function listServicesPage(
 export async function listServices(): Promise<Service[]> {
   const response = await listServicesPage({ page: 1, page_size: 100 });
   return response.items;
+}
+
+export async function listMyServices(): Promise<Service[]> {
+  return request<Service[]>("/services/mine", { auth: true });
 }
 
 export async function getService(id: number | string) {

@@ -169,10 +169,12 @@ async fn payment_settlement_and_review_flow() {
         .unwrap();
     assert_eq!(creator.total_income, Decimal::new(9000, 2));
 
-    reviews
+    let review = reviews
         .create(2, 1, Decimal::new(50, 1), Some("Excellent".into()), false)
         .await
         .unwrap();
+    let review_json = serde_json::to_value(&review).unwrap();
+    assert!(review_json.get("user_id").is_none());
     reviews
         .create(2, 2, Decimal::new(40, 1), Some("Good".into()), false)
         .await

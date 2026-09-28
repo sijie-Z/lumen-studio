@@ -128,6 +128,23 @@ impl WorkService {
         Ok((items, total))
     }
 
+    pub async fn by_id(&self, id: i32) -> Result<WorkDto, AppError> {
+        let rows = work_entity::Entity::find_by_id(id)
+            .find_with_related(user_entity::Entity)
+            .all(&self.db)
+            .await
+            .map_err(AppError::from_anyhow)?;
+        let (work, users) = rows
+            .into_iter()
+            .next()
+            .ok_or_else(|| AppError::NotFound("work not found".into()))?;
+        let creator_name = users
+            .first()
+            .map(|user| user.nickname.clone())
+            .unwrap_or_else(|| "匿名创作者".into());
+        Ok(to_dto(work, creator_name))
+    }
+
     pub async fn count(&self) -> Result<u64, AppError> {
         work_entity::Entity::find()
             .count(&self.db)
@@ -202,6 +219,9 @@ mod tests {
         assert_eq!(created.image_url, "/uploads/one.jpg");
         assert_eq!(service.count().await.unwrap(), 1);
         assert_eq!(service.list(20).await.unwrap().len(), 1);
+        let detail = service.by_id(created.id).await.unwrap();
+        assert_eq!(detail.id, created.id);
+        assert_eq!(detail.creator_name, "Artist");
     }
 
     #[tokio::test]

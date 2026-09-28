@@ -3,7 +3,6 @@ import { request } from "./api";
 export interface ReviewDto {
   id: number;
   appointment_id: number;
-  user_id: number;
   creator_id: number;
   rating: string;
   content: string | null;

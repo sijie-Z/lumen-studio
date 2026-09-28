@@ -11,7 +11,7 @@ import {
   Star
 } from "lucide-solid";
 import { createMemo, createSignal, For, Show } from "solid-js";
-import { Avatar, AvatarFallback } from "../components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
 import { EmptyState, ErrorState, LoadingState } from "../components/ui/state";
@@ -82,6 +82,9 @@ export default function CreatorProfile() {
   });
   const reviewList = createMemo(() => reviews.data ?? []);
   const displayName = createMemo(() => {
+    const nickname = creator.data?.nickname?.trim();
+    if (nickname) return nickname;
+
     const creatorName = ownWorks().find((item) => item.creator_name)?.creator_name;
     return creatorName?.trim() || `创作者 #${creator.data?.id ?? params.id}`;
   });
@@ -144,6 +147,11 @@ export default function CreatorProfile() {
               <section class="mt-5 overflow-hidden rounded-lg border border-line bg-surface">
                 <div class="grid gap-7 p-6 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center md:p-8">
                   <Avatar class="size-24 border border-white/10 shadow-2xl shadow-black/20 md:size-28">
+                    <Show when={profile().avatar_url}>
+                      {(avatarUrl) => (
+                        <AvatarImage src={avatarUrl()} alt={displayName()} />
+                      )}
+                    </Show>
                     <AvatarFallback class="bg-gradient-to-br from-amber via-coral to-teal text-3xl font-semibold text-ink md:text-4xl">
                       {avatarText()}
                     </AvatarFallback>

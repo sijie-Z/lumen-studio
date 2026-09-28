@@ -2,7 +2,7 @@ mod middleware;
 mod routes;
 mod state;
 
-use anyhow::Context;
+use anyhow::{bail, Context};
 use axum::Router;
 use sea_orm::DatabaseConnection;
 use services::auth_service::AuthService;
@@ -29,10 +29,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("failed to run database migrations")?;
 
-    let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| {
-        tracing::warn!("JWT_SECRET is not set; using development secret");
-        "dev-only-secret-change-me".into()
-    });
+    let jwt_secret = validate_jwt_secret(std::env::var("JWT_SECRET").ok().as_deref())?;
     let auth = AuthService::new(db.clone(), jwt_secret, 15 * 60, 7 * 24 * 60 * 60);
     let services_catalog = services::service_catalog::ServiceCatalog::new(db.clone());
     services_catalog
@@ -87,4 +84,30 @@ async fn connect_database(url: &str) -> anyhow::Result<DatabaseConnection> {
         .await
         .context("failed to connect to database")?;
     Ok(db)
+}
+
+fn validate_jwt_secret(secret: Option<&str>) -> anyhow::Result<String> {
+    let secret = secret.map(str::trim).filter(|value| !value.is_empty());
+    let Some(secret) = secret else {
+        bail!("JWT_SECRET must be set to a random string of at least 32 characters");
+    };
+    if secret.len() < 32 {
+        bail!("JWT_SECRET must be set to a random string of at least 32 characters");
+    }
+    Ok(secret.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_jwt_secret;
+
+    #[test]
+    fn jwt_secret_requires_a_strong_value() {
+        assert!(validate_jwt_secret(None).is_err());
+        assert!(validate_jwt_secret(Some("")).is_err());
+        assert!(validate_jwt_secret(Some("short-secret")).is_err());
+
+        let secret = "0123456789abcdef0123456789abcdef";
+        assert_eq!(validate_jwt_secret(Some(secret)).unwrap(), secret);
+    }
 }

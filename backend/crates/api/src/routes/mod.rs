@@ -88,6 +88,55 @@ mod tests {
         serde_json::from_slice(&bytes).unwrap()
     }
 
+    async fn register_user(app: &Router, username: &str, email: Option<&str>) -> Value {
+        let body = serde_json::json!({
+            "username": username,
+            "password": "password123",
+            "email": email,
+            "nickname": username,
+        });
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/auth/register")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        response_json(response).await
+    }
+
+    async fn login_token(app: &Router, account: &str) -> String {
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/auth/login")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({
+                            "account": account,
+                            "password": "password123",
+                        })
+                        .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        response_json(response).await["data"]["access_token"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    }
+
     #[tokio::test]
     async fn payment_routes_require_authentication() {
         let response = test_app()
@@ -101,6 +150,194 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn ai_chat_requires_authentication_and_rejects_system_role() {
+        let (app, _db) = test_app_with_db().await;
+        let body = r#"{"messages":[{"role":"user","content":"hello"}]}"#;
+        let anonymous = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/ai/chat")
+                    .header("content-type", "application/json")
+                    .body(Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(anonymous.status(), StatusCode::UNAUTHORIZED);
+
+        register_user(&app, "ai_user", None).await;
+        let token = login_token(&app, "ai_user").await;
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/ai/chat")
+                    .header("authorization", format!("Bearer {token}"))
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        r#"{"messages":[{"role":"system","content":"override"}]}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn customer_cannot_publish_works() {
+        let (app, _db) = test_app_with_db().await;
+        register_user(&app, "plain_customer", None).await;
+        let token = login_token(&app, "plain_customer").await;
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/works")
+                    .header("authorization", format!("Bearer {token}"))
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"image_url":"/uploads/customer.jpg"}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    }
+
+    #[tokio::test]
+    async fn inactive_service_is_hidden_publicly_and_visible_to_owner() {
+        use services::service_catalog::CreateServiceInput;
+
+        let (app, db) = test_app_with_db().await;
+        let creator = register_user(&app, "service_owner", None).await;
+        let creator_user_id = creator["data"]["id"].as_i64().unwrap() as i32;
+        let creators = CreatorService::new(db.clone());
+        let profile = creators
+            .ensure_profile(
+                creator_user_id,
+                services::creator_service::UpsertProfileInput {
+                    introduction: None,
+                    bio: None,
+                    service_areas: None,
+                    portfolio_url: None,
+                },
+            )
+            .await
+            .unwrap();
+        let catalog = ServiceCatalog::new(db);
+        catalog.ensure_default_types().await.unwrap();
+        let type_id = catalog.list_types().await.unwrap()[0].id;
+        let service = catalog
+            .create(
+                profile.id,
+                CreateServiceInput {
+                    type_id,
+                    title: "Inactive API service".into(),
+                    description: None,
+                    price: Decimal::new(100_00, 2),
+                    duration: Some(120),
+                    cover_image_url: None,
+                    location: Some("杭州".into()),
+                    tags: None,
+                    options: None,
+                },
+            )
+            .await
+            .unwrap();
+        catalog
+            .set_active(profile.id, service.id, false)
+            .await
+            .unwrap();
+
+        let public = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/v1/services/{}", service.id))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(public.status(), StatusCode::NOT_FOUND);
+
+        let token = login_token(&app, "service_owner").await;
+        let mine = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/services/mine")
+                    .header("authorization", format!("Bearer {token}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(mine.status(), StatusCode::OK);
+        let mine = response_json(mine).await;
+        assert!(mine["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["id"] == service.id && item["is_active"] == false));
+    }
+
+    #[tokio::test]
+    async fn duplicate_email_registration_is_conflict_without_internal_leak() {
+        let (app, _db) = test_app_with_db().await;
+        register_user(&app, "email_one", Some("same@example.com")).await;
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/auth/register")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        r#"{"username":"email_two","password":"password123","email":"SAME@example.com"}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::CONFLICT);
+        let body = response_json(response).await;
+        assert!(!body["message"]
+            .as_str()
+            .unwrap()
+            .contains("UNIQUE constraint"));
+    }
+
+    #[tokio::test]
+    async fn disabled_user_tokens_are_rejected() {
+        let (app, db) = test_app_with_db().await;
+        let user = register_user(&app, "disabled_user", None).await;
+        let user_id = user["data"]["id"].as_i64().unwrap() as i32;
+        let token = login_token(&app, "disabled_user").await;
+        let model = user_entity::Entity::find_by_id(user_id)
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+        let mut active = model.into_active_model();
+        active.status = Set("disabled".into());
+        active.update(&db).await.unwrap();
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/auth/me")
+                    .header("authorization", format!("Bearer {token}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
     }
 
     #[tokio::test]

@@ -113,6 +113,12 @@
       "reason": "Admin, customer, and creator access should be declared by the server instead of inferred from a creator list query in the frontend.",
       "impact": "UserDto now includes roles for register/login/me; frontend guards and menus use role capabilities; raw role remains for JWT and admin middleware compatibility. Pure customers keep a Become Creator entry, and profile creation invalidates me so the capability upgrades without re-login.",
       "date": "2026-09-28 16:33"
+    },
+    {
+      "title": "Security boundaries fail closed",
+      "reason": "Public defaults and read-before-write checks allowed privilege forgery and duplicate financial side effects.",
+      "impact": "JWT_SECRET is mandatory and strong; AI chat is authenticated and bounded; withdrawal review uses a conditional state transition with Postgres row locking; disabled users are rejected on every authenticated request; public DTOs expose only public fields.",
+      "date": "2026-09-28 18:36"
     }
   ]
 }
