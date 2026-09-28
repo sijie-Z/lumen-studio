@@ -41,10 +41,11 @@
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
-- smoke test still writes to main photography.db
 - Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents
-- Browser-level three-role routing E2E after roles response change is still pending
 - Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment
+- Appointment duration validation truncates seconds, so 120m59s passes for a 120-minute service
+- Service creation accepts durations outside the 60-480 minute appointment slot range
+- SQLite concurrent withdrawal review returns 500 database-is-locked instead of 409; balance remains correct
 
 ## Next Step
-- Review the fixes with the adversarial supervisor, then run browser-level regression against the hardened auth, AI, service lifecycle, and withdrawal flows
+- Fix exact duration comparison, enforce service duration bounds, and normalize/retry SQLite lock conflicts; then rerun the adversarial audit and full E2E suite

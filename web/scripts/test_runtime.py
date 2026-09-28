@@ -196,7 +196,8 @@ def managed_test_environment():
             "DATABASE_URL": "sqlite://photography_test.db?mode=rwc",
             "BIND_ADDR": "127.0.0.1:8080",
             "UPLOAD_DIR": str(TEST_UPLOADS),
-            "RUST_LOG": "api=warn,tower_http=warn",
+            "JWT_SECRET": "test-only-jwt-secret-0123456789abcdef",
+            "RUST_LOG": "common=error,api=warn,tower_http=warn",
         }
     )
 

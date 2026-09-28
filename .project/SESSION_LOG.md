@@ -162,3 +162,13 @@
 - **Summary**: Fixed P0/P1 findings: mandatory strong JWT secret, authenticated and bounded AI chat with server-owned system prompt, atomic withdrawal review with conditional updates and Postgres row locking, unique email/phone conflicts with redacted internal errors, self-booking and duration validation, creator-only work publishing, inactive service hiding plus /services/mine, public DTO field removal, and active-user checks in auth middleware. Added regression tests across ai, common, services, and api. cargo test --workspace passed 35 tests; pnpm build passed 1846 modules; git diff --check passed.
 - **Next**: Review the fixes with the adversarial supervisor, then run browser-level regression against the hardened auth, AI, service lifecycle, and withdrawal flows
 
+### [2026-09-28 19:18] main — Adversarial re-review of security and consistency fixes
+
+- **Task**: Independently verify commit 5b2a5570 and attempt bypasses
+- **Branch**: main
+- **Files**: web/scripts/audit_probe.py; web/scripts/test_runtime.py
+- **Verification**: cargo test --workspace passed 45 tests; pnpm build passed 1846 modules; regression2 and regression3 E2E passed against isolated databases with unchanged main DB fingerprint. Audit confirmed mandatory JWT secret startup failure, forged-token rejection, authenticated/bounded AI chat, clean duplicate email/phone conflicts, self-booking rejection, creator-only works, inactive-service hiding, public DTO privacy, disabled-token rejection, and one-winner withdrawal review balance correctness.
+- **Findings**: The duration check still accepts 120m59s because it compares truncated minutes; service creation accepts duration 30 and 600 even though appointment slots allow only 60-480; SQLite concurrent withdrawal review returns 500 (database is locked) instead of 409, although balance remains correct and the Postgres lock/conditional-update path is present.
+- **Risks**: Postgres-specific row-lock behavior was reviewed statically but not executed because the isolated suite uses SQLite.
+- **Next**: Make appointment duration comparison exact at second precision; validate service duration into 60-480 at creation/update; translate SQLite busy/lock errors during conditional review into Conflict or retry.
+
