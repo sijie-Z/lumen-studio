@@ -63,8 +63,9 @@ def login(page: Page, account: str, password: str, expected_path: str) -> None:
     wait_for_url(page, expected_path)
 
 
-def logout(page: Page, button_name: str) -> None:
-    page.get_by_role("button", name=button_name, exact=True).click()
+def logout(page: Page, nickname: str) -> None:
+    page.get_by_role("button", name=re.compile(re.escape(nickname))).click()
+    page.get_by_role("button", name="退出登录", exact=True).click()
     page.wait_for_url(re.compile(r"^http://127\.0\.0\.1:5173/$"), timeout=20000)
 
 
@@ -157,7 +158,7 @@ def main() -> None:
             page.wait_for_selector("text=预约档期", timeout=15000)
             page.locator('input[type="datetime-local"]').fill(APPOINTMENT_DATE)
             page.get_by_role("button", name="立即预约", exact=True).click()
-            page.wait_for_selector("text=预约已提交", timeout=15000)
+            page.wait_for_selector("[data-testid='appointment-created']", timeout=15000)
             screenshot(page, "03-appointment-created")
 
             page.goto(f"{WEB_BASE}/account", wait_until="domcontentloaded")
@@ -174,7 +175,7 @@ def main() -> None:
             page.wait_for_selector("text=已确认", timeout=15000)
             screenshot(page, "05-payment-confirmed")
 
-            logout(page, "退出")
+            logout(page, "林小满")
             page.close()
             page = tracked_page(context, console_errors, page_errors, api_errors)
 
@@ -216,7 +217,7 @@ def main() -> None:
             page.wait_for_selector("text=提现申请已提交，等待管理员审核。", timeout=15000)
             screenshot(page, "10-creator-withdrawal-submitted")
 
-            logout(page, "退出登录")
+            logout(page, "陈屿")
             page.close()
             page = tracked_page(context, console_errors, page_errors, api_errors)
 
@@ -233,7 +234,7 @@ def main() -> None:
             dismiss_guide_and_assert_persisted(page, "管理后台怎么用")
             page.wait_for_selector("text=平台概览", timeout=15000)
 
-            logout(page, "退出")
+            logout(page, "平台管理员")
             page.close()
             page = tracked_page(context, console_errors, page_errors, api_errors)
 

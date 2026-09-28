@@ -25,7 +25,7 @@ def main() -> None:
         page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
 
         page.goto("http://127.0.0.1:5173", wait_until="domcontentloaded")
-        page.wait_for_selector("text=Lumina", timeout=10000)
+        page.wait_for_selector("text=Lumen Studio", timeout=10000)
         page.screenshot(path=str(OUT_DIR / "home-desktop.png"), full_page=True)
         overflow = page.evaluate(
             "document.documentElement.scrollWidth - window.innerWidth"

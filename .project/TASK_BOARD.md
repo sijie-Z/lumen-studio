@@ -1,8 +1,7 @@
 # Task Board
 
 ## TODO
-- Add browser coverage for pagination, search, filters, and creator onboarding
-- Adversarial re-review and browser regression for hardened security boundaries
+- Continue product-level UI, workflow, and visual polish
 
 ## DOING
 - (empty)
@@ -37,4 +36,6 @@
 - Address P2 findings: stats, pagination, hardening
 - Rebrand to Lumen Studio
 - Finish Lumen Studio placeholder rebrand
+- Verify Lumen Studio rebrand with four isolated browser regressions
+- Stabilize browser regressions by serving the production Vite build
 

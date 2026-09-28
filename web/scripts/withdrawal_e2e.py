@@ -43,14 +43,18 @@ def login(page: Page, account: str, password: str, expected_path: str) -> None:
     )
 
 
-def logout_dashboard(page: Page) -> None:
+def logout_user(page: Page, nickname: str) -> None:
+    page.get_by_role("button", name=re.compile(re.escape(nickname))).click()
     page.get_by_role("button", name="退出登录", exact=True).click()
     page.wait_for_url(re.compile(r"^http://127\.0\.0\.1:5173/$"), timeout=20000)
 
 
+def logout_dashboard(page: Page) -> None:
+    logout_user(page, "陈屿")
+
+
 def logout_admin(page: Page) -> None:
-    page.get_by_role("button", name="退出", exact=True).click()
-    page.wait_for_url(re.compile(r"^http://127\.0\.0\.1:5173/$"), timeout=20000)
+    logout_user(page, "平台管理员")
 
 
 def creator_section(page: Page):
@@ -117,19 +121,24 @@ def main() -> None:
     console_errors: list[str] = []
     page_errors: list[str] = []
     api_errors: list[str] = []
+    console_error_set: set[str] = set()
+
+    def record_console_error(message) -> None:
+        if message.type != "error" or message.text in console_error_set:
+            return
+        console_error_set.add(message.text)
+        console_errors.append(f"{message.text} ({page.url})")
 
     set_creator_balance(Decimal("5000.00"))
 
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
+        browser = playwright.chromium.launch(
+            headless=True,
+            args=["--disable-gpu", "--disable-dev-shm-usage", "--no-sandbox"],
+        )
         context = browser.new_context(viewport={"width": 1440, "height": 1000})
         page = context.new_page()
-        page.on(
-            "console",
-            lambda message: console_errors.append(message.text)
-            if message.type == "error"
-            else None,
-        )
+        page.on("console", record_console_error)
         page.on("pageerror", lambda error: page_errors.append(str(error)))
         page.on(
             "response",

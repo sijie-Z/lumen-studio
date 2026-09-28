@@ -186,7 +186,10 @@ export default function ServiceDetail() {
                   </div>
                 )}
                 {success() && (
-                  <div class="space-y-3 rounded-lg border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-accent">
+                  <div
+                    data-testid="appointment-created"
+                    class="space-y-3 rounded-lg border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-accent"
+                  >
                     <p>
                       预约 #{createdAppointmentId()} 已提交，请在客户中心完成支付后锁定档期。
                     </p>

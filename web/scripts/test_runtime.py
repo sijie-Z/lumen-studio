@@ -56,6 +56,19 @@ def _port_is_open(port: int) -> bool:
         return False
 
 
+def _frontend_command() -> list[str]:
+    mode = os.environ.get("LUMEN_E2E_FRONTEND_MODE", "preview").strip().lower()
+    script = "dev" if mode == "dev" else "preview"
+    return [
+        _pnpm_command(),
+        script,
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5173",
+    ]
+
+
 def _ensure_port_free(port: int, service_name: str) -> None:
     if _port_is_open(port):
         raise RuntimeError(
@@ -220,14 +233,7 @@ def managed_test_environment():
         )
 
         frontend_process = subprocess.Popen(
-            [
-                _pnpm_command(),
-                "dev",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                "5173",
-            ],
+            _frontend_command(),
             cwd=WEB_DIR,
             stdout=frontend_output,
             stderr=subprocess.STDOUT,

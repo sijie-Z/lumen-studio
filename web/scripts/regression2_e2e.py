@@ -136,7 +136,7 @@ def mark_all_notifications_read(page: Page) -> None:
 def assert_public_shell(page: Page) -> None:
     shell = header(page)
     expect(shell).to_be_visible(timeout=15000)
-    expect(shell.get_by_role("link", name="Lumina 首页", exact=True)).to_be_visible()
+    expect(shell.get_by_role("link", name="Lumen Studio 首页", exact=True)).to_be_visible()
     for label in ("探索", "服务", "创作者"):
         expect(shell.get_by_role("link", name=label, exact=True)).to_be_visible()
 
@@ -144,7 +144,7 @@ def assert_public_shell(page: Page) -> None:
 def assert_role_shell(page: Page, nickname: str, labels: tuple[str, ...]) -> None:
     shell = header(page)
     expect(shell).to_be_visible(timeout=15000)
-    expect(shell.get_by_role("link", name="Lumina 首页", exact=True)).to_be_visible()
+    expect(shell.get_by_role("link", name="Lumen Studio 首页", exact=True)).to_be_visible()
     expect(notification_bell(page)).to_be_visible()
     user_button = shell.get_by_role("button", name=re.compile(nickname))
     expect(user_button).to_be_visible()

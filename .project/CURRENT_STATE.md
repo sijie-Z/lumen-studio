@@ -30,25 +30,22 @@
 - [x] Address P2 findings: stats, pagination, hardening
 - [x] Rebrand to Lumen Studio
 - [x] Finish Lumen Studio placeholder rebrand
+- [x] Verify Lumen Studio rebrand with four isolated browser regressions
+- [x] Stabilize browser regressions by serving the production Vite build
 
 ## Recent Changes
-- web/src/components/ai/assistant.tsx
-- web/src/pages/register.tsx
-- web/src/pages/login.tsx
-- web/src/pages/home.tsx
-- web/src/components/layout/site-footer.tsx
-- web/src/components/layout/app-shell.tsx
-- web/index.html
-- README.md
-- backend/crates/api, backend/crates/common, backend/crates/services, web/src/lib, web/src/pages
-- backend/crates/api/src/routes/mod.rs
+- backend/crates/ai/src/chat.rs
+- web/src/pages/service-detail.tsx
+- web/scripts/test_runtime.py
+- web/scripts/regression2_e2e.py
+- web/scripts/regression3_e2e.py
+- web/scripts/onboarding_notification_e2e.py
+- web/scripts/withdrawal_e2e.py
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
-- smoke test still writes to main photography.db
 - Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents
-- Browser-level three-role routing E2E after roles response change is still pending
-- Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment
+- Long browser flows should use the production preview test runtime because the Vite dev server is resource-heavy on this Windows host
 
 ## Next Step
-- Run browser-level visual checks for the Lumen Studio rebrand
+- Continue product-level UI and workflow polish while preserving the verified Lumen Studio baseline

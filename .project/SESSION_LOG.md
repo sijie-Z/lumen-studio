@@ -219,3 +219,13 @@
 - **Summary**: Replaced the remaining visible lumina_user placeholder with lumen_user, then verified pnpm build with 1846 modules. GitHub repository and remote remain sijie-Z/lumen-studio.
 - **Next**: Run browser-level visual checks for the Lumen Studio rebrand
 
+### [2026-09-29 01:20] main — Verify Lumen Studio rebrand and stabilize browser regression
+
+- **Task**: Verify Lumen Studio rebrand, eliminate stale brand copy, and run the full isolated browser regression set
+- **Branch**: main
+- **Files**: backend/crates/ai/src/chat.rs; web/src/pages/service-detail.tsx; web/scripts/test_runtime.py; web/scripts/regression_e2e.py; web/scripts/regression2_e2e.py; web/scripts/regression3_e2e.py; web/scripts/onboarding_notification_e2e.py; web/scripts/withdrawal_e2e.py; web/scripts/smoke_ui.py; .project
+- **Summary**: Replaced the remaining visible Lumina AI prompt/reply copy with Lumen Studio, updated stale test selectors, added a language-independent appointment-created test hook, and fixed logout helpers to open the shared user menu and use the real seed nicknames. The isolated runtime now serves the production Vite build through `vite preview` by default instead of the dev HMR server, which eliminated repeated `ERR_INSUFFICIENT_RESOURCES` and WebSocket failures during long multi-login flows. Legacy localStorage and environment-variable identifiers were intentionally left unchanged for compatibility.
+- **Verification**: `cargo test --workspace` passed 57 tests; `pnpm build` passed 1846 modules. `regression2`, `regression3`, `onboarding_notification_e2e`, and `withdrawal_e2e` all passed against isolated databases. The main database SHA-256 remained `ebb88d506dfe9a0a33eeb1e9b2434a6aebe21760f652aa7d79ed4e671438a6c4`, and ports 8080/5173 were released after each run.
+- **Risks**: Playwright uses a fresh browser process per script and the production preview build; future script changes should keep `python -X utf8` on Windows or avoid encoding-sensitive selectors.
+- **Next**: Continue product-level UI and workflow polish on top of the verified Lumen Studio brand baseline
+
