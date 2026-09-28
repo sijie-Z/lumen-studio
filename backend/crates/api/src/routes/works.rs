@@ -11,8 +11,8 @@ use services::work_service::WorkDto;
 
 #[derive(Debug, Deserialize)]
 pub struct ListWorksQuery {
-    #[serde(flatten)]
-    pagination: Pagination,
+    page: Option<u64>,
+    page_size: Option<u64>,
     category: Option<String>,
     creator_id: Option<i32>,
     q: Option<String>,
@@ -34,8 +34,12 @@ async fn list_works(
     State(state): State<AppState>,
     Query(query): Query<ListWorksQuery>,
 ) -> Result<Json<ApiResponse<PaginatedResponse<WorkDto>>>, AppError> {
-    let page = query.pagination.page();
-    let page_size = query.pagination.page_size();
+    let pagination = Pagination {
+        page: query.page,
+        page_size: query.page_size,
+    };
+    let page = pagination.page();
+    let page_size = pagination.page_size();
     let (items, total) = state
         .works
         .list_paginated(page, page_size, query.category, query.creator_id, query.q)

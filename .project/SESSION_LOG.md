@@ -134,3 +134,10 @@
 - **Summary**: Implemented paginated works, services, and creators APIs with search/category/type/location filters; connected explore and services pages to server-side pagination and four-state UI; verified cargo test --workspace and pnpm build
 - **Next**: Run browser-level pagination, search, and filter checks for explore and services; then add API-level route tests for paginated responses
 
+### [2026-09-28 15:31] main — Browser regression for pagination and full flow
+
+- **Task**: Browser regression for pagination and full flow
+- **Branch**: main
+- **Summary**: Ran isolated browser regression for pagination, filters, route guards, full booking/payment/review flow, and paid cancellation refund. Fixed public list query deserialization that returned 400 and added API regression coverage. cargo test --workspace and pnpm build passed; main database fingerprint unchanged.
+- **Next**: Run the regression suite after transaction, role, and creator profile changes; next add first-class customer/creator capabilities.
+

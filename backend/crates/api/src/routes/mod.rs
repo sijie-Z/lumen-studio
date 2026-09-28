@@ -165,6 +165,26 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
     }
     #[tokio::test]
+    async fn paginated_public_routes_accept_numeric_query_params() {
+        let app = test_app().await;
+        for uri in [
+            "/api/v1/works?page=1&page_size=100",
+            "/api/v1/services?page=1&page_size=100",
+            "/api/v1/creators?page=1&page_size=100",
+        ] {
+            let response = app
+                .clone()
+                .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::OK, "{uri}");
+            let body = response_json(response).await;
+            assert_eq!(body["data"]["page"], 1, "{uri}");
+            assert_eq!(body["data"]["page_size"], 100, "{uri}");
+        }
+    }
+
+    #[tokio::test]
     async fn withdrawal_authenticated_api_flow() {
         let (app, db) = test_app_with_db().await;
         let auth = AuthService::new(db.clone(), "test-secret", 900, 86_400);

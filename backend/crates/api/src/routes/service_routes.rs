@@ -11,8 +11,8 @@ use services::service_catalog::{CreateServiceInput, ServiceDto, ServiceTypeDto};
 
 #[derive(Debug, Deserialize)]
 struct ListServicesQuery {
-    #[serde(flatten)]
-    pagination: Pagination,
+    page: Option<u64>,
+    page_size: Option<u64>,
     type_id: Option<i32>,
     q: Option<String>,
     location: Option<String>,
@@ -54,8 +54,12 @@ async fn list_services(
     State(state): State<AppState>,
     Query(query): Query<ListServicesQuery>,
 ) -> Result<Json<ApiResponse<PaginatedResponse<ServiceDto>>>, AppError> {
-    let page = query.pagination.page();
-    let page_size = query.pagination.page_size();
+    let pagination = Pagination {
+        page: query.page,
+        page_size: query.page_size,
+    };
+    let page = pagination.page();
+    let page_size = pagination.page_size();
     let (items, total) = state
         .services
         .list_active_paginated(page, page_size, query.type_id, query.q, query.location)

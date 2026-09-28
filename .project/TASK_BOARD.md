@@ -29,4 +29,5 @@
 - Booking success now links directly to the highlighted order payment action
 - Full browser regression for guarded layouts and refund flow
 - Polish creator, work detail, and home pages
+- Browser regression for pagination and full flow
 

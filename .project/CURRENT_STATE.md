@@ -22,18 +22,19 @@
 - [x] Browser regression for guarded layouts, full transaction, notifications, and cancellation refunds
 - [x] Polish creator, work detail, and home pages
 - [x] Paginate list APIs and connect the existing PaginatedResponse contract
+- [x] Browser regression for pagination and full flow
 
 ## Recent Changes
+- web/scripts/regression2_e2e.py
+- backend/crates/api/src/routes/mod.rs
+- backend/crates/api/src/routes/creators.rs
+- backend/crates/api/src/routes/service_routes.rs
+- backend/crates/api/src/routes/works.rs
 - web/src/pages/home.tsx
 - web/src/pages/work-detail.tsx
 - web/src/pages/creator-profile.tsx
 - web/scripts/regression_e2e.py
 - web/src/pages/account.tsx
-- web/index.html
-- web/public/favicon.svg
-- web/src/components/layout/app-shell.tsx
-- web/src/main.tsx
-- web/src/components/ui/state.tsx
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
@@ -43,4 +44,4 @@
 - Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment
 
 ## Next Step
-- Run browser-level pagination, search, and filter checks for explore and services; then add API-level route tests for paginated responses
+- Run the regression suite after transaction, role, and creator profile changes; next add first-class customer/creator capabilities.

@@ -11,8 +11,8 @@ use services::creator_service::{CreatorProfileDto, UpsertProfileInput};
 
 #[derive(Debug, Deserialize)]
 struct ListCreatorsQuery {
-    #[serde(flatten)]
-    pagination: Pagination,
+    page: Option<u64>,
+    page_size: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -33,8 +33,12 @@ async fn list_creators(
     State(state): State<AppState>,
     Query(query): Query<ListCreatorsQuery>,
 ) -> Result<Json<ApiResponse<PaginatedResponse<CreatorProfileDto>>>, AppError> {
-    let page = query.pagination.page();
-    let page_size = query.pagination.page_size();
+    let pagination = Pagination {
+        page: query.page,
+        page_size: query.page_size,
+    };
+    let page = pagination.page();
+    let page_size = pagination.page_size();
     let (items, total) = state.creators.list_paginated(page, page_size).await?;
     Ok(Json(ApiResponse::success(PaginatedResponse::new(
         items, total, page, page_size,
