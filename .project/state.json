@@ -1,24 +1,24 @@
 {
   "recent_files": [
-    "legacy/",
-    ".gitignore",
-    "web/scripts/regression2_e2e.py",
-    "backend/crates/api/src/routes/mod.rs",
-    "backend/crates/api/src/routes/creators.rs",
-    "backend/crates/api/src/routes/service_routes.rs",
-    "backend/crates/api/src/routes/works.rs",
-    "web/src/pages/home.tsx",
-    "web/src/pages/work-detail.tsx",
-    "web/src/pages/creator-profile.tsx"
+    "web/src/pages/dashboard.tsx",
+    "web/src/components/layout/creator-layout.tsx",
+    "web/src/components/layout/customer-layout.tsx",
+    "web/src/components/layout/app-shell.tsx",
+    "web/src/components/layout/require-role.tsx",
+    "web/src/pages/login.tsx",
+    "web/src/lib/auth-api.ts",
+    "backend/crates/services/src/dto/auth.rs",
+    "backend/crates/services/src/auth_service.rs",
+    "legacy/"
   ],
   "known_issues": [
     "Rust MSVC linker missing — need VS Build Tools or GNU toolchain",
     "smoke test still writes to main photography.db",
     "Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents",
-    "Creator identity is still profile-based for onboarding; customer and creator capabilities are not yet a first-class role model",
+    "Browser-level three-role routing E2E after roles response change is still pending",
     "Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment"
   ],
-  "next_step": "Keep legacy/ ignored as an archive; make the next structural pass by retiring root editor/cache directories only after confirming nothing active depends on them.",
+  "next_step": "Run browser-level three-role routing checks after roles changes; verify admin, creator, and customer login destinations plus forbidden route redirects.",
   "branch": "main",
   "active_work": [
     {
@@ -103,6 +103,10 @@
     },
     {
       "name": "Archive legacy code under legacy/",
+      "status": "done"
+    },
+    {
+      "name": "Introduce first-class customer/creator capabilities without blocking creator onboarding",
       "status": "done"
     }
   ]

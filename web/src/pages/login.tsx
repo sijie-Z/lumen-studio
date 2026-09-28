@@ -2,7 +2,6 @@ import { A, useNavigate } from "@solidjs/router";
 import { Camera, LoaderCircle, Lock, User } from "lucide-solid";
 import { createSignal } from "solid-js";
 import { login } from "../lib/auth-api";
-import { listCreators } from "../lib/marketplace-api";
 import { useAuthStore } from "../stores/auth";
 
 export default function Login() {
@@ -20,12 +19,13 @@ export default function Login() {
     try {
       const result = await login(account(), password());
       auth.signIn(result.access_token, result.user);
-      if (result.user.role === "admin") {
+      const roles = result.user.roles?.length ? result.user.roles : [result.user.role];
+      if (roles.includes("admin")) {
         navigate("/admin");
+      } else if (roles.includes("creator")) {
+        navigate("/dashboard");
       } else {
-        const creators = await listCreators();
-        const isCreator = creators.some((item) => item.user_id === result.user.id);
-        navigate(isCreator ? "/dashboard" : "/account");
+        navigate("/account");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "登录失败");

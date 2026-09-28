@@ -148,3 +148,10 @@
 - **Summary**: Archived remaining legacy Flask runtime directories under legacy/flask_backend, verified the only active code roots are backend/ and web/, and passed cargo check plus pnpm build.
 - **Next**: Keep legacy/ ignored as an archive; make the next structural pass by retiring root editor/cache directories only after confirming nothing active depends on them.
 
+### [2026-09-28 16:34] main — Capability-based roles
+
+- **Task**: Capability-based roles
+- **Branch**: main
+- **Summary**: Implemented capability-based roles across auth DTOs, service computation, frontend login routing, route guards, menu visibility, and role labels while preserving customer-to-creator onboarding. cargo test --workspace passed 36 tests; pnpm build passed 1846 modules. Commit pending.
+- **Next**: Run browser-level three-role routing checks after roles changes; verify admin, creator, and customer login destinations plus forbidden route redirects.
+

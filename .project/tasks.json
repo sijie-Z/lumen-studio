@@ -91,7 +91,9 @@
     },
     {
       "name": "Introduce first-class customer/creator capabilities without blocking creator onboarding",
-      "status": "todo"
+      "status": "done",
+      "started": "2026-09-28 16:17",
+      "finished": "2026-09-28 16:34"
     },
     {
       "name": "Paginate list APIs and connect the existing PaginatedResponse contract",

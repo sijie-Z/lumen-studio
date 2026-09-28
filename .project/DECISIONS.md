@@ -144,3 +144,11 @@
 
 *2026-09-28 00:58*
 
+## ADR-019: Role capabilities are computed by auth service
+
+**Reason**: Admin, customer, and creator access should be declared by the server instead of inferred from a creator list query in the frontend.
+
+**Impact**: UserDto now includes roles for register/login/me; frontend guards and menus use role capabilities; raw role remains for JWT and admin middleware compatibility. Pure customers keep a Become Creator entry, and profile creation invalidates me so the capability upgrades without re-login.
+
+*2026-09-28 16:33*
+

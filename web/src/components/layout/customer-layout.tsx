@@ -1,12 +1,12 @@
 import type { RouteSectionProps } from "@solidjs/router";
 import AppShell from "./app-shell";
-import RequireAuth from "./require-auth";
+import RequireRole from "./require-role";
 
 export default function CustomerLayout(props: RouteSectionProps) {
   return (
-    <RequireAuth>
+    <RequireRole roles={["customer"]}>
       <AppShell mode="customer" />
       {props.children}
-    </RequireAuth>
+    </RequireRole>
   );
 }

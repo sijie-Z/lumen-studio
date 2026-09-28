@@ -21,17 +21,22 @@ export default function RequireRole(props: RequireRoleProps) {
     enabled: Boolean(auth.token())
   }));
 
-  const currentUser = () => auth.user() ?? me.data ?? null;
+  const currentUser = () => me.data ?? auth.user() ?? null;
   const allowed = () => {
     const user = currentUser();
-    return Boolean(user && props.roles.includes(user.role));
+    if (!user) return false;
+    const roles = user.roles?.length ? user.roles : [user.role];
+    return roles.some((role) => props.roles.includes(role));
   };
 
   createEffect(() => {
     if (!auth.token()) return;
     const user = currentUser();
-    if (user && !props.roles.includes(user.role)) {
-      navigate(props.redirectTo ?? "/");
+    if (user) {
+      const roles = user.roles?.length ? user.roles : [user.role];
+      if (!roles.some((role) => props.roles.includes(role))) {
+        navigate(props.redirectTo ?? "/");
+      }
     }
   });
 

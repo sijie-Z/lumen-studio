@@ -9,6 +9,7 @@ export interface UserDto {
   phone: string | null;
   balance: string;
   role: string;
+  roles: string[];
   status: string;
 }
 

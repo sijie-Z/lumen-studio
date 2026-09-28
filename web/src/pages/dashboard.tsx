@@ -166,6 +166,7 @@ export default function Dashboard() {
         bio: bio() || undefined
       });
       await queryClient.invalidateQueries({ queryKey: ["creators"] });
+      await queryClient.invalidateQueries({ queryKey: ["me"] });
       setProfileMsg(`创作者资料已保存（ID ${profile.id}）`);
     } catch (err) {
       setProfileMsg(err instanceof Error ? err.message : "保存失败");
@@ -319,7 +320,7 @@ export default function Dashboard() {
                 <div class="flex items-center justify-between gap-4">
                   <span class="text-muted">角色</span>
                   <span class="rounded-full bg-teal/15 px-2.5 py-1 text-xs text-teal">
-                    {me.data?.role === "user" ? "创作者" : me.data?.role}
+                    {me.data?.roles?.includes("admin") ? "管理员" : me.data?.roles?.includes("creator") ? "创作者" : "客户"}
                   </span>
                 </div>
               </div>

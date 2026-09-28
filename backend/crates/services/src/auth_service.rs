@@ -5,7 +5,7 @@ use argon2::{
 };
 use chrono::{Duration, Utc};
 use common::AppError;
-use db::entities::{user as user_entity, UserModel};
+use db::entities::{creator_profile as creator_entity, user as user_entity, UserModel};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
@@ -81,7 +81,7 @@ impl AuthService {
         .await
         .map_err(AppError::from_anyhow)?;
 
-        Ok(to_user_dto(model))
+        self.to_user_dto(model).await
     }
 
     pub async fn login(&self, input: LoginInput) -> Result<AuthResponse, AppError> {
@@ -111,7 +111,7 @@ impl AuthService {
             refresh_token,
             token_type: "Bearer".into(),
             expires_in: self.access_token_ttl,
-            user: to_user_dto(user),
+            user: self.to_user_dto(user).await?,
         })
     }
 
@@ -131,7 +131,18 @@ impl AuthService {
             .await
             .map_err(AppError::from_anyhow)?
             .ok_or_else(|| AppError::NotFound("user not found".into()))?;
-        Ok(to_user_dto(user))
+        self.to_user_dto(user).await
+    }
+
+    async fn to_user_dto(&self, user: UserModel) -> Result<UserDto, AppError> {
+        let has_creator_profile = creator_entity::Entity::find()
+            .filter(creator_entity::Column::UserId.eq(user.id))
+            .one(&self.db)
+            .await
+            .map_err(AppError::from_anyhow)?
+            .is_some();
+
+        Ok(user_to_dto(user, has_creator_profile))
     }
 
     fn generate_token(&self, user: &UserModel, ttl: i64) -> Result<String, AppError> {
@@ -168,7 +179,8 @@ fn verify_password(password: &str, hash: &str) -> Result<(), AppError> {
         .map_err(|_| AppError::InvalidCredentials)
 }
 
-fn to_user_dto(user: UserModel) -> UserDto {
+fn user_to_dto(user: UserModel, has_creator_profile: bool) -> UserDto {
+    let roles = roles_for(&user.role, has_creator_profile);
     UserDto {
         id: user.id,
         username: user.username,
@@ -178,14 +190,30 @@ fn to_user_dto(user: UserModel) -> UserDto {
         phone: user.phone,
         balance: user.balance,
         role: user.role,
+        roles,
         status: user.status,
     }
+}
+
+fn roles_for(user_role: &str, has_creator_profile: bool) -> Vec<String> {
+    let mut roles = if user_role == "admin" {
+        vec!["admin".into(), "customer".into()]
+    } else {
+        vec!["customer".into()]
+    };
+
+    if has_creator_profile {
+        roles.push("creator".into());
+    }
+
+    roles
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use db::migrations;
+    use sea_orm::IntoActiveModel;
 
     async fn test_db() -> DatabaseConnection {
         let db = db::connect("sqlite::memory:").await.unwrap();
@@ -210,6 +238,7 @@ mod tests {
             .unwrap();
         assert_eq!(registered.username, "alice");
         assert_eq!(registered.email.as_deref(), Some("alice@example.com"));
+        assert_eq!(registered.roles, vec!["customer"]);
 
         let duplicate = service
             .register(RegisterInput {
@@ -234,6 +263,79 @@ mod tests {
         let claims = service.verify_token(&login.access_token).unwrap();
         assert_eq!(claims.sub, 1);
         assert_eq!(claims.role, "user");
+        assert_eq!(login.user.roles, vec!["customer"]);
+    }
+
+    #[tokio::test]
+    async fn role_capabilities_cover_customer_creator_and_admin() {
+        let db = test_db().await;
+        let service = AuthService::new(db.clone(), "test-secret", 900, 604800);
+
+        let customer = service
+            .register(RegisterInput {
+                username: "cap_customer".into(),
+                password: "password123".into(),
+                email: None,
+                phone: None,
+                nickname: Some("Customer".into()),
+            })
+            .await
+            .unwrap();
+        assert_eq!(customer.roles, vec!["customer"]);
+
+        let creator = service
+            .register(RegisterInput {
+                username: "cap_creator".into(),
+                password: "password123".into(),
+                email: None,
+                phone: None,
+                nickname: Some("Creator".into()),
+            })
+            .await
+            .unwrap();
+
+        let admin = service
+            .register(RegisterInput {
+                username: "cap_admin".into(),
+                password: "password123".into(),
+                email: None,
+                phone: None,
+                nickname: Some("Admin".into()),
+            })
+            .await
+            .unwrap();
+
+        let admin_model = user_entity::Entity::find_by_id(admin.id)
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+        let mut admin_model = admin_model.into_active_model();
+        admin_model.role = Set("admin".into());
+        admin_model.update(&db).await.unwrap();
+
+        let now = Utc::now();
+        creator_entity::ActiveModel {
+            user_id: Set(creator.id),
+            rating: Set(rust_decimal::Decimal::new(50, 1)),
+            certification_level: Set("standard".into()),
+            total_services: Set(0),
+            total_appointments: Set(0),
+            total_income: Set(rust_decimal::Decimal::ZERO),
+            avg_rating: Set(rust_decimal::Decimal::ZERO),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+
+        let creator = service.get_user_by_id(creator.id).await.unwrap();
+        assert_eq!(creator.roles, vec!["customer", "creator"]);
+
+        let admin = service.get_user_by_id(admin.id).await.unwrap();
+        assert_eq!(admin.roles, vec!["admin", "customer"]);
     }
 
     #[tokio::test]

@@ -107,6 +107,12 @@
       "reason": "PaginatedResponse is used for paginated public list APIs while legacy array helpers remain for older pages",
       "impact": "New list screens use explicit page APIs and existing home/work/profile consumers stay compatible",
       "date": "2026-09-28 00:58"
+    },
+    {
+      "title": "Role capabilities are computed by auth service",
+      "reason": "Admin, customer, and creator access should be declared by the server instead of inferred from a creator list query in the frontend.",
+      "impact": "UserDto now includes roles for register/login/me; frontend guards and menus use role capabilities; raw role remains for JWT and admin middleware compatibility. Pure customers keep a Become Creator entry, and profile creation invalidates me so the capability upgrades without re-login.",
+      "date": "2026-09-28 16:33"
     }
   ]
 }

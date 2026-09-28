@@ -1,7 +1,6 @@
 # Task Board
 
 ## TODO
-- Introduce first-class customer/creator capabilities without blocking creator onboarding
 - Add browser coverage for pagination, search, filters, and creator onboarding
 
 ## DOING
@@ -23,6 +22,7 @@
 - User onboarding system
 - Message notification system
 - Onboarding and notification browser E2E
+- Introduce first-class customer/creator capabilities without blocking creator onboarding
 - Paginate list APIs and connect the existing PaginatedResponse contract
 - Frontend grouped layouts + shared AppShell + route guards
 - Unified loading/error/empty/success states on core pages

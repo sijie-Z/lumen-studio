@@ -35,6 +35,7 @@ export default function AppShell(props: AppShellProps) {
   const auth = useAuthStore();
   const [mobileOpen, setMobileOpen] = createSignal(false);
   const [userOpen, setUserOpen] = createSignal(false);
+  const hasRole = (role: string) => auth.user()?.roles?.includes(role) ?? false;
 
   const navItems = (): NavItem[] => {
     if (props.mode === "admin") {
@@ -135,23 +136,27 @@ export default function AppShell(props: AppShellProps) {
 
               <Show when={userOpen()}>
                 <div class="absolute right-0 top-12 w-56 overflow-hidden rounded-lg border border-line bg-ink py-1 shadow-2xl">
-                  <A
-                    href="/account"
-                    class="flex items-center gap-2 px-4 py-2.5 text-sm text-muted no-underline hover:bg-surface hover:text-paper"
-                    onClick={() => setUserOpen(false)}
-                  >
-                    <Compass size={16} />
-                    客户中心
-                  </A>
-                  <A
-                    href="/dashboard"
-                    class="flex items-center gap-2 px-4 py-2.5 text-sm text-muted no-underline hover:bg-surface hover:text-paper"
-                    onClick={() => setUserOpen(false)}
-                  >
-                    <LayoutDashboard size={16} />
-                    创作者工作台
-                  </A>
-                  <Show when={auth.user()?.role === "admin"}>
+                  <Show when={hasRole("customer")}>
+                    <A
+                      href="/account"
+                      class="flex items-center gap-2 px-4 py-2.5 text-sm text-muted no-underline hover:bg-surface hover:text-paper"
+                      onClick={() => setUserOpen(false)}
+                    >
+                      <Compass size={16} />
+                      客户中心
+                    </A>
+                  </Show>
+                  <Show when={hasRole("creator") || (hasRole("customer") && !hasRole("admin"))}>
+                    <A
+                      href="/dashboard"
+                      class="flex items-center gap-2 px-4 py-2.5 text-sm text-muted no-underline hover:bg-surface hover:text-paper"
+                      onClick={() => setUserOpen(false)}
+                    >
+                      <LayoutDashboard size={16} />
+                      {hasRole("creator") ? "创作者工作台" : "成为创作者"}
+                    </A>
+                  </Show>
+                  <Show when={hasRole("admin")}>
                     <A
                       href="/admin"
                       class="flex items-center gap-2 px-4 py-2.5 text-sm text-muted no-underline hover:bg-surface hover:text-paper"
@@ -224,23 +229,27 @@ export default function AppShell(props: AppShellProps) {
               }
             >
               <div class="mt-3 grid gap-2">
-                <A
-                  href="/account"
-                  class="flex items-center gap-2 rounded-lg px-3 py-3 text-sm text-muted no-underline hover:bg-surface hover:text-paper"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <Compass size={16} />
-                  客户中心
-                </A>
-                <A
-                  href="/dashboard"
-                  class="flex items-center gap-2 rounded-lg px-3 py-3 text-sm text-muted no-underline hover:bg-surface hover:text-paper"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <LayoutDashboard size={16} />
-                  创作者工作台
-                </A>
-                <Show when={auth.user()?.role === "admin"}>
+                <Show when={hasRole("customer")}>
+                  <A
+                    href="/account"
+                    class="flex items-center gap-2 rounded-lg px-3 py-3 text-sm text-muted no-underline hover:bg-surface hover:text-paper"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <Compass size={16} />
+                    客户中心
+                  </A>
+                </Show>
+                <Show when={hasRole("creator") || (hasRole("customer") && !hasRole("admin"))}>
+                  <A
+                    href="/dashboard"
+                    class="flex items-center gap-2 rounded-lg px-3 py-3 text-sm text-muted no-underline hover:bg-surface hover:text-paper"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <LayoutDashboard size={16} />
+                    {hasRole("creator") ? "创作者工作台" : "成为创作者"}
+                  </A>
+                </Show>
+                <Show when={hasRole("admin")}>
                   <A
                     href="/admin"
                     class="flex items-center gap-2 rounded-lg px-3 py-3 text-sm text-muted no-underline hover:bg-surface hover:text-paper"

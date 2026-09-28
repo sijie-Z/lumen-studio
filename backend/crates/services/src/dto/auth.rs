@@ -26,6 +26,7 @@ pub struct UserDto {
     pub phone: Option<String>,
     pub balance: Decimal,
     pub role: String,
+    pub roles: Vec<String>,
     pub status: String,
 }
 
