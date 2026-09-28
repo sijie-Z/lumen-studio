@@ -18,7 +18,7 @@
     "Browser-level three-role routing E2E after roles response change is still pending",
     "Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment"
   ],
-  "next_step": "Confirm the lumen-studio remote and continue browser-level rebrand checks",
+  "next_step": "Run browser-level visual checks for the Lumen Studio rebrand",
   "branch": "main",
   "active_work": [
     {
@@ -123,6 +123,10 @@
     },
     {
       "name": "Rebrand to Lumen Studio",
+      "status": "done"
+    },
+    {
+      "name": "Finish Lumen Studio placeholder rebrand",
       "status": "done"
     }
   ]

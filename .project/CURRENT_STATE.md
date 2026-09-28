@@ -29,6 +29,7 @@
 - [x] Close remaining validation and concurrency gaps
 - [x] Address P2 findings: stats, pagination, hardening
 - [x] Rebrand to Lumen Studio
+- [x] Finish Lumen Studio placeholder rebrand
 
 ## Recent Changes
 - web/src/components/ai/assistant.tsx
@@ -50,4 +51,4 @@
 - Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment
 
 ## Next Step
-- Confirm the lumen-studio remote and continue browser-level rebrand checks
+- Run browser-level visual checks for the Lumen Studio rebrand

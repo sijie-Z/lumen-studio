@@ -36,4 +36,5 @@
 - Close remaining validation and concurrency gaps
 - Address P2 findings: stats, pagination, hardening
 - Rebrand to Lumen Studio
+- Finish Lumen Studio placeholder rebrand
 

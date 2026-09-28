@@ -72,7 +72,7 @@ export default function Register() {
                     value={form().username}
                     onInput={(e) => update("username", e.currentTarget.value)}
                     class="h-11 w-full min-w-0 bg-transparent text-paper outline-none placeholder:text-muted/60"
-                    placeholder="lumina_user"
+                    placeholder="lumen_user"
                     required
                   />
                 </div>
