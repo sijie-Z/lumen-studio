@@ -7,7 +7,7 @@ use rust_decimal::Decimal;
 use sea_orm::sea_query::Expr;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, DbBackend, EntityTrait,
-    IntoActiveModel, QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
+    IntoActiveModel, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -103,12 +103,28 @@ impl WithdrawalService {
     }
 
     pub async fn list_all(&self) -> Result<Vec<WithdrawalDto>, AppError> {
+        self.list_all_paginated(1, u32::MAX as u64)
+            .await
+            .map(|(items, _)| items)
+    }
+
+    pub async fn list_all_paginated(
+        &self,
+        page: u64,
+        page_size: u64,
+    ) -> Result<(Vec<WithdrawalDto>, u64), AppError> {
+        let total = withdrawal_entity::Entity::find()
+            .count(&self.db)
+            .await
+            .map_err(AppError::from_anyhow)?;
         let withdrawals = withdrawal_entity::Entity::find()
             .order_by_desc(withdrawal_entity::Column::CreatedAt)
+            .offset((page.saturating_sub(1)) * page_size)
+            .limit(page_size)
             .all(&self.db)
             .await
             .map_err(AppError::from_anyhow)?;
-        Ok(withdrawals.into_iter().map(to_dto).collect())
+        Ok((withdrawals.into_iter().map(to_dto).collect(), total))
     }
 
     pub async fn review(
@@ -239,5 +255,71 @@ fn to_dto(model: withdrawal_entity::Model) -> WithdrawalDto {
         review_note: model.review_note,
         completed_at: model.completed_at,
         created_at: model.created_at,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use db::migrations;
+
+    #[tokio::test]
+    async fn admin_withdrawals_are_paginated() {
+        let db = db::connect("sqlite::memory:").await.unwrap();
+        migrations::run(&db).await.unwrap();
+        let now = Utc::now();
+
+        user_entity::ActiveModel {
+            username: Set("withdrawal_page_creator".into()),
+            password_hash: Set("hash".into()),
+            nickname: Set("Withdrawal Page Creator".into()),
+            status: Set("active".into()),
+            role: Set("user".into()),
+            verification_status: Set("unverified".into()),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+        creator_entity::ActiveModel {
+            user_id: Set(1),
+            rating: Set(Decimal::new(50, 1)),
+            certification_level: Set("standard".into()),
+            total_services: Set(0),
+            total_appointments: Set(0),
+            total_income: Set(Decimal::ZERO),
+            avg_rating: Set(Decimal::ZERO),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+
+        for amount in ["10.00", "20.00", "30.00"] {
+            withdrawal_entity::ActiveModel {
+                creator_id: Set(1),
+                amount: Set(amount.parse().unwrap()),
+                fee: Set(Decimal::ZERO),
+                actual_amount: Set(Some(amount.parse().unwrap())),
+                status: Set("pending".into()),
+                created_at: Set(now),
+                ..Default::default()
+            }
+            .insert(&db)
+            .await
+            .unwrap();
+        }
+
+        let service = WithdrawalService::new(db);
+        let (first, total) = service.list_all_paginated(1, 2).await.unwrap();
+        assert_eq!(total, 3);
+        assert_eq!(first.len(), 2);
+        let (second, total) = service.list_all_paginated(2, 2).await.unwrap();
+        assert_eq!(total, 3);
+        assert_eq!(second.len(), 1);
     }
 }

@@ -158,6 +158,12 @@
       "status": "done",
       "started": "2026-09-28 19:27",
       "finished": "2026-09-28 19:28"
+    },
+    {
+      "name": "Address P2 findings: stats, pagination, hardening",
+      "status": "done",
+      "started": "2026-09-28 20:59",
+      "finished": "2026-09-28 21:00"
     }
   ]
 }

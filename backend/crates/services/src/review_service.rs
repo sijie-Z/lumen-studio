@@ -1,12 +1,12 @@
 use chrono::{DateTime, Utc};
-use common::AppError;
+use common::{validation::max_chars, AppError};
 use db::entities::{
     appointment as appointment_entity, creator_profile as creator_entity, review as review_entity,
 };
 use rust_decimal::Decimal;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
-    QueryOrder, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
+    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set, TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
 
@@ -47,6 +47,7 @@ impl ReviewService {
                 "rating must be between 1 and 5".into(),
             ));
         }
+        max_chars(content.as_deref(), 5000, "review content")?;
 
         let rating = rating.round_dp(1);
         let now = Utc::now();
@@ -123,13 +124,31 @@ impl ReviewService {
     }
 
     pub async fn list_for_creator(&self, creator_id: i32) -> Result<Vec<ReviewDto>, AppError> {
+        self.list_for_creator_paginated(creator_id, 1, u32::MAX as u64)
+            .await
+            .map(|(items, _)| items)
+    }
+
+    pub async fn list_for_creator_paginated(
+        &self,
+        creator_id: i32,
+        page: u64,
+        page_size: u64,
+    ) -> Result<(Vec<ReviewDto>, u64), AppError> {
+        let total = review_entity::Entity::find()
+            .filter(review_entity::Column::CreatorId.eq(creator_id))
+            .count(&self.db)
+            .await
+            .map_err(AppError::from_anyhow)?;
         let reviews = review_entity::Entity::find()
             .filter(review_entity::Column::CreatorId.eq(creator_id))
             .order_by_desc(review_entity::Column::CreatedAt)
+            .offset((page.saturating_sub(1)) * page_size)
+            .limit(page_size)
             .all(&self.db)
             .await
             .map_err(AppError::from_anyhow)?;
-        Ok(reviews.into_iter().map(to_dto).collect())
+        Ok((reviews.into_iter().map(to_dto).collect(), total))
     }
 }
 
@@ -145,5 +164,82 @@ fn to_dto(model: review_entity::Model) -> ReviewDto {
         photographer_reply: model.photographer_reply,
         replied_at: model.replied_at,
         created_at: model.created_at,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use db::entities::{creator_profile as creator_entity, user as user_entity};
+    use db::migrations;
+    use sea_orm::{ActiveModelTrait, Set};
+
+    #[tokio::test]
+    async fn creator_reviews_are_paginated_and_content_length_is_limited() {
+        let db = db::connect("sqlite::memory:").await.unwrap();
+        migrations::run(&db).await.unwrap();
+        let now = Utc::now();
+
+        user_entity::ActiveModel {
+            username: Set("review_creator".into()),
+            password_hash: Set("hash".into()),
+            nickname: Set("Review Creator".into()),
+            status: Set("active".into()),
+            role: Set("user".into()),
+            verification_status: Set("unverified".into()),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+        creator_entity::ActiveModel {
+            user_id: Set(1),
+            rating: Set(Decimal::new(50, 1)),
+            certification_level: Set("standard".into()),
+            total_services: Set(0),
+            total_appointments: Set(0),
+            total_income: Set(Decimal::ZERO),
+            avg_rating: Set(Decimal::ZERO),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+
+        for index in 0..3 {
+            review_entity::ActiveModel {
+                appointment_id: Set(index + 1),
+                user_id: Set(1),
+                creator_id: Set(1),
+                rating: Set(Decimal::new(50, 1)),
+                content: Set(Some(format!("review {index}"))),
+                is_anonymous: Set(false),
+                created_at: Set(now),
+                ..Default::default()
+            }
+            .insert(&db)
+            .await
+            .unwrap();
+        }
+
+        let service = ReviewService::new(db);
+        let (first, total) = service.list_for_creator_paginated(1, 1, 2).await.unwrap();
+        assert_eq!(total, 3);
+        assert_eq!(first.len(), 2);
+        let (second, total) = service.list_for_creator_paginated(1, 2, 2).await.unwrap();
+        assert_eq!(total, 3);
+        assert_eq!(second.len(), 1);
+
+        let too_long = "x".repeat(5001);
+        assert!(matches!(
+            service
+                .create(1, 1, Decimal::new(50, 1), Some(too_long), false)
+                .await,
+            Err(AppError::BadRequest(_))
+        ));
     }
 }

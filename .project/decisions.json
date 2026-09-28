@@ -125,6 +125,12 @@
       "reason": "Minute truncation and unbounded service durations allowed bookings that could not match the configured service contract.",
       "impact": "Appointment duration compares exact signed duration against the service duration; service creation accepts duration only in the 60-480 minute booking range; SQLite lock, busy, and deadlock errors map to retryable 409 conflicts at the shared error boundary.",
       "date": "2026-09-28 19:28"
+    },
+    {
+      "title": "Gross volume uses successful appointment payments",
+      "reason": "Summing appointments.total_price included pending, cancelled, and refunded orders",
+      "impact": "Admin GMV now counts payment_type=appointment and status=success only; recharges and settlement records are excluded",
+      "date": "2026-09-28 20:59"
     }
   ]
 }

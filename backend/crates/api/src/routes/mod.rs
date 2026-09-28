@@ -75,6 +75,7 @@ mod tests {
             reviews: ReviewService::new(db.clone()),
             withdrawals: WithdrawalService::new(db.clone()),
             admin: AdminService::new(db.clone()),
+            rate_limiter: None,
         };
         (router().with_state(state), db)
     }

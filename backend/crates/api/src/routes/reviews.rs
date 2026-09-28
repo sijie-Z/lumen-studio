@@ -1,11 +1,11 @@
 use crate::middleware::auth::AuthUser;
 use crate::state::AppState;
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     routing::{get, post},
     Json, Router,
 };
-use common::{ApiResponse, AppError};
+use common::{ApiResponse, AppError, PaginatedResponse, Pagination};
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use services::review_service::ReviewDto;
@@ -17,6 +17,12 @@ struct CreateReviewBody {
     content: Option<String>,
     #[serde(default)]
     is_anonymous: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct PaginationQuery {
+    page: Option<u64>,
+    page_size: Option<u64>,
 }
 
 pub fn router() -> Router<AppState> {
@@ -46,7 +52,19 @@ async fn create_review(
 async fn list_creator_reviews(
     State(state): State<AppState>,
     Path(id): Path<i32>,
-) -> Result<Json<ApiResponse<Vec<ReviewDto>>>, AppError> {
-    let reviews = state.reviews.list_for_creator(id).await?;
-    Ok(Json(ApiResponse::success(reviews)))
+    Query(query): Query<PaginationQuery>,
+) -> Result<Json<ApiResponse<PaginatedResponse<ReviewDto>>>, AppError> {
+    let pagination = Pagination {
+        page: query.page,
+        page_size: query.page_size,
+    };
+    let page = pagination.page();
+    let page_size = pagination.page_size();
+    let (items, total) = state
+        .reviews
+        .list_for_creator_paginated(id, page, page_size)
+        .await?;
+    Ok(Json(ApiResponse::success(PaginatedResponse::new(
+        items, total, page, page_size,
+    ))))
 }

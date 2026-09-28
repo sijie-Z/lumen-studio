@@ -168,3 +168,11 @@
 
 *2026-09-28 19:28*
 
+## ADR-022: Gross volume uses successful appointment payments
+
+**Reason**: Summing appointments.total_price included pending, cancelled, and refunded orders
+
+**Impact**: Admin GMV now counts payment_type=appointment and status=success only; recharges and settlement records are excluded
+
+*2026-09-28 20:59*
+

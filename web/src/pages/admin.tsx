@@ -16,27 +16,31 @@ import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { StepGuide, type GuideStep } from "../components/onboarding/step-guide";
-import { EmptyState, ErrorState, LoadingState } from "../components/ui/state";
+import { EmptyState, ErrorState, LoadingState, PaginationState } from "../components/ui/state";
 import { getStats, listUsers } from "../lib/admin-api";
 import { isAuthenticated } from "../lib/auth-api";
 import { listAllWithdrawals, reviewWithdrawal } from "../lib/withdrawal-api";
 
+const PAGE_SIZE = 20;
+
 export default function Admin() {
   const queryClient = useQueryClient();
+  const [usersPage, setUsersPage] = createSignal(1);
+  const [withdrawalsPage, setWithdrawalsPage] = createSignal(1);
   const stats = createQuery(() => ({
     queryKey: ["admin-stats"] as const,
     queryFn: getStats,
     enabled: isAuthenticated()
   }));
   const users = createQuery(() => ({
-    queryKey: ["admin-users"] as const,
-    queryFn: listUsers,
+    queryKey: ["admin-users", usersPage()] as const,
+    queryFn: () => listUsers({ page: usersPage(), page_size: PAGE_SIZE }),
     enabled: isAuthenticated()
   }));
 
   const withdrawals = createQuery(() => ({
-    queryKey: ["admin-withdrawals"] as const,
-    queryFn: listAllWithdrawals,
+    queryKey: ["admin-withdrawals", withdrawalsPage()] as const,
+    queryFn: () => listAllWithdrawals({ page: withdrawalsPage(), page_size: PAGE_SIZE }),
     enabled: isAuthenticated()
   }));
   const [withdrawalNotes, setWithdrawalNotes] = createSignal<Record<number, string>>({});
@@ -53,7 +57,7 @@ export default function Admin() {
   ];
 
   const pendingWithdrawals = () =>
-    (withdrawals.data ?? []).filter((item) => item.status === "pending");
+    (withdrawals.data?.items ?? []).filter((item) => item.status === "pending");
 
   const adminSteps = (): GuideStep[] => [
     {
@@ -64,7 +68,7 @@ export default function Admin() {
     {
       title: "管理用户与角色",
       description: "在用户列表中核对账号状态和角色信息。",
-      done: (users.data?.length ?? 0) > 0
+      done: (users.data?.total ?? 0) > 0
     },
     {
       title: "处理提现审核",
@@ -159,10 +163,10 @@ export default function Admin() {
               onRetry={() => users.refetch()}
             />
           </Show>
-          <Show when={users.isSuccess && (users.data?.length ?? 0) === 0}>
+          <Show when={users.isSuccess && (users.data?.items.length ?? 0) === 0}>
             <EmptyState title="暂无用户" description="注册用户后会展示在这里。" />
           </Show>
-          <Show when={users.isSuccess && (users.data?.length ?? 0) > 0}>
+          <Show when={users.isSuccess && (users.data?.items.length ?? 0) > 0}>
             <Card>
               <CardContent class="overflow-x-auto p-0">
                 <table class="w-full min-w-[640px] text-left text-sm">
@@ -176,7 +180,7 @@ export default function Admin() {
                     </tr>
                   </thead>
                   <tbody>
-                    <For each={users.data ?? []}>
+                    <For each={users.data?.items ?? []}>
                       {(user) => (
                         <tr class="border-b border-line last:border-0">
                           <td class="px-5 py-3">
@@ -204,6 +208,15 @@ export default function Admin() {
                 </table>
               </CardContent>
             </Card>
+          </Show>
+          <Show when={users.isSuccess && (users.data?.total ?? 0) > 0}>
+            <PaginationState
+              page={usersPage()}
+              pageCount={Math.ceil((users.data?.total ?? 0) / PAGE_SIZE)}
+              total={users.data?.total ?? 0}
+              disabled={users.isFetching}
+              onPageChange={setUsersPage}
+            />
           </Show>
         </section>
         <section id="withdrawals" class="mt-10">
@@ -241,7 +254,7 @@ export default function Admin() {
                 <Show
                   when={pendingWithdrawals().length > 0}
                   fallback={
-                    <EmptyState class="min-h-32" title="当前没有待审核提现" description="新的提现申请会出现在这里。" />
+                    <EmptyState class="min-h-32" title="当前页没有待审核提现" description="可切换到其他页面继续查看。" />
                   }
                 >
                   <div class="space-y-4">
@@ -297,6 +310,15 @@ export default function Admin() {
               </Show>
             </CardContent>
           </Card>
+          <Show when={withdrawals.isSuccess && (withdrawals.data?.total ?? 0) > 0}>
+            <PaginationState
+              page={withdrawalsPage()}
+              pageCount={Math.ceil((withdrawals.data?.total ?? 0) / PAGE_SIZE)}
+              total={withdrawals.data?.total ?? 0}
+              disabled={withdrawals.isFetching}
+              onPageChange={setWithdrawalsPage}
+            />
+          </Show>
         </section>
       </main>
     </div>

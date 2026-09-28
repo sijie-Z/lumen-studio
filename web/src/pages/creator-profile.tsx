@@ -14,7 +14,7 @@ import { createMemo, createSignal, For, Show } from "solid-js";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
-import { EmptyState, ErrorState, LoadingState } from "../components/ui/state";
+import { EmptyState, ErrorState, LoadingState, PaginationState } from "../components/ui/state";
 import SiteFooter from "../components/layout/site-footer";
 import { cn } from "../lib/cn";
 import { getCreator, listServices } from "../lib/marketplace-api";
@@ -22,6 +22,8 @@ import { listCreatorReviews } from "../lib/reviews-api";
 import { listWorks } from "../lib/works-api";
 
 type ProfileTab = "services" | "works" | "reviews";
+
+const REVIEW_PAGE_SIZE = 10;
 
 const tabs: { id: ProfileTab; label: string }[] = [
   { id: "services", label: "服务" },
@@ -54,6 +56,7 @@ function formatCertification(value: string) {
 export default function CreatorProfile() {
   const params = useParams();
   const [activeTab, setActiveTab] = createSignal<ProfileTab>("services");
+  const [reviewPage, setReviewPage] = createSignal(1);
   const creator = createQuery(() => ({
     queryKey: ["creator", params.id] as const,
     queryFn: () => getCreator(params.id ?? "")
@@ -67,8 +70,12 @@ export default function CreatorProfile() {
     queryFn: listWorks
   }));
   const reviews = createQuery(() => ({
-    queryKey: ["creator-reviews", params.id] as const,
-    queryFn: () => listCreatorReviews(params.id ?? "")
+    queryKey: ["creator-reviews", params.id, reviewPage()] as const,
+    queryFn: () =>
+      listCreatorReviews(params.id ?? "", {
+        page: reviewPage(),
+        page_size: REVIEW_PAGE_SIZE
+      })
   }));
 
   const ownServices = createMemo(() =>
@@ -80,7 +87,8 @@ export default function CreatorProfile() {
 
     return (works.data ?? []).filter((item) => item.user_id === profile.user_id);
   });
-  const reviewList = createMemo(() => reviews.data ?? []);
+  const reviewList = createMemo(() => reviews.data?.items ?? []);
+  const reviewTotal = createMemo(() => reviews.data?.total ?? 0);
   const displayName = createMemo(() => {
     const nickname = creator.data?.nickname?.trim();
     if (nickname) return nickname;
@@ -90,11 +98,6 @@ export default function CreatorProfile() {
   });
   const avatarText = createMemo(() => displayName().replace(/^@/, "").trim().slice(0, 1) || "创");
   const averageRating = createMemo(() => {
-    if (reviewList().length > 0) {
-      const total = reviewList().reduce((sum, review) => sum + Number(review.rating), 0);
-      return (total / reviewList().length).toFixed(1);
-    }
-
     const rating = Number(creator.data?.rating ?? creator.data?.avg_rating ?? 0);
     return rating > 0 ? rating.toFixed(1) : null;
   });
@@ -108,7 +111,7 @@ export default function CreatorProfile() {
   const tabCount = (tab: ProfileTab) => {
     if (tab === "services") return ownServices().length;
     if (tab === "works") return ownWorks().length;
-    return reviewList().length;
+    return reviewTotal();
   };
 
   return (
@@ -185,8 +188,8 @@ export default function CreatorProfile() {
                       <span class="inline-flex items-center gap-1.5 text-foreground">
                         <Star size={16} class="fill-current text-amber" />
                         <strong class="font-semibold">{averageRating() ?? "暂无评分"}</strong>
-                        <Show when={reviewList().length > 0}>
-                          <span class="text-muted">({reviewList().length} 条评价)</span>
+                        <Show when={reviewTotal() > 0}>
+                          <span class="text-muted">({reviewTotal()} 条评价)</span>
                         </Show>
                       </span>
                       <Show when={serviceAreas().length > 0}>
@@ -419,8 +422,8 @@ export default function CreatorProfile() {
                       <h2 class="font-display text-2xl font-semibold">用户评价</h2>
                       <p class="mt-2 text-sm text-muted">来自已完成预约的真实反馈</p>
                     </div>
-                    <Show when={reviewList().length > 0}>
-                      <Badge variant="outline">{reviewList().length} 条评价</Badge>
+                    <Show when={reviewTotal() > 0}>
+                      <Badge variant="outline">{reviewTotal()} 条评价</Badge>
                     </Show>
                   </div>
 
@@ -507,6 +510,13 @@ export default function CreatorProfile() {
                             )}
                           </For>
                         </div>
+                        <PaginationState
+                          page={reviewPage()}
+                          pageCount={Math.ceil(reviewTotal() / REVIEW_PAGE_SIZE)}
+                          total={reviewTotal()}
+                          disabled={reviews.isFetching}
+                          onPageChange={setReviewPage}
+                        />
                       </Show>
                     </Show>
                   </Show>

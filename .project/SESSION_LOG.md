@@ -198,3 +198,10 @@
 - **Risks**: GitHub push is blocked until the official `gh` CLI is installed and authenticated, or a remote URL with credentials is supplied.
 - **Next**: Commit the README, authenticate GitHub CLI, create the public repository, and push `main`.
 
+### [2026-09-28 21:00] main — Address P2 findings: stats, pagination, hardening
+
+- **Task**: Address P2 findings: stats, pagination, hardening
+- **Branch**: main
+- **Summary**: Fixed P2 findings: GMV now sums successful appointment payments only; admin users, admin withdrawals, and creator reviews use the shared page/page_size contract; frontend admin and creator review lists use the paginated shape; CORS origins are environment-configured with local defaults; per-IP governor rate limiting is enabled in production startup with test-safe disablement; LIKE wildcards are escaped; and service/work/review/creator text fields have length limits. cargo test --workspace passed 57 tests; pnpm build passed 1846 modules.
+- **Next**: Run browser-level checks for admin pagination, creator review pagination, CORS, and rate-limit behavior under a configured environment
+

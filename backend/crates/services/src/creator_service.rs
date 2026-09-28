@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use common::AppError;
+use common::{validation::max_chars, AppError};
 use db::entities::{creator_profile as profile_entity, user as user_entity, CreatorProfileModel};
 use rust_decimal::Decimal;
 use sea_orm::{
@@ -51,6 +51,8 @@ impl CreatorService {
         user_id: i32,
         input: UpsertProfileInput,
     ) -> Result<CreatorProfileDto, AppError> {
+        max_chars(input.introduction.as_deref(), 5000, "creator introduction")?;
+        max_chars(input.bio.as_deref(), 5000, "creator bio")?;
         let existing = profile_entity::Entity::find()
             .filter(profile_entity::Column::UserId.eq(user_id))
             .one(&self.db)
@@ -295,5 +297,21 @@ mod tests {
 
         let json = serde_json::to_value(service.by_id(1).await.unwrap()).unwrap();
         assert!(json.get("total_income").is_none());
+
+        let too_long = "x".repeat(5001);
+        assert!(matches!(
+            service
+                .ensure_profile(
+                    1,
+                    UpsertProfileInput {
+                        introduction: Some(too_long),
+                        bio: None,
+                        service_areas: None,
+                        portfolio_url: None,
+                    },
+                )
+                .await,
+            Err(AppError::BadRequest(_))
+        ));
     }
 }

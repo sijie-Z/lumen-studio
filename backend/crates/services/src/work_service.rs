@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use common::AppError;
+use common::{validation::max_chars, AppError};
 use db::entities::{user as user_entity, work as work_entity, WorkModel};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
@@ -40,6 +40,8 @@ impl WorkService {
         if image_url.trim().is_empty() {
             return Err(AppError::BadRequest("image_url is required".into()));
         }
+        max_chars(title.as_deref(), 255, "work title")?;
+        max_chars(description.as_deref(), 5000, "work description")?;
 
         let model = work_entity::ActiveModel {
             user_id: Set(user_id),
@@ -166,7 +168,13 @@ fn apply_work_filters(
         query = query.filter(work_entity::Column::UserId.eq(creator_id));
     }
     if let Some(keyword) = keyword.filter(|value| !value.trim().is_empty()) {
-        query = query.filter(work_entity::Column::Title.like(format!("%{}%", keyword.trim())));
+        query = query.filter(sea_orm::sea_query::Expr::cust_with_values(
+            "title LIKE ? ESCAPE '\\'",
+            [format!(
+                "%{}%",
+                common::validation::escape_like_pattern(keyword.trim())
+            )],
+        ));
     }
     query
 }
@@ -292,5 +300,60 @@ mod tests {
             .unwrap();
         assert_eq!(total, 1);
         assert_eq!(matches[0].title.as_deref(), Some("Wedding story"));
+    }
+
+    #[tokio::test]
+    async fn work_search_escapes_like_wildcards_and_limits_text_length() {
+        let db = db::connect("sqlite::memory:").await.unwrap();
+        migrations::run(&db).await.unwrap();
+        let now = Utc::now();
+        user_entity::ActiveModel {
+            username: Set("escape_work_user".into()),
+            password_hash: Set("hash".into()),
+            nickname: Set("Escape Work User".into()),
+            status: Set("active".into()),
+            role: Set("user".into()),
+            verification_status: Set("unverified".into()),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+
+        let service = WorkService::new(db);
+        for title in ["literal%match", "ordinary"] {
+            service
+                .create(
+                    1,
+                    format!("/uploads/{title}.jpg"),
+                    Some(title.into()),
+                    None,
+                    None,
+                )
+                .await
+                .unwrap();
+        }
+
+        let (matches, total) = service
+            .list_paginated(1, 20, None, None, Some("%".into()))
+            .await
+            .unwrap();
+        assert_eq!(total, 1);
+        assert_eq!(matches[0].title.as_deref(), Some("literal%match"));
+
+        assert!(matches!(
+            service
+                .create(
+                    1,
+                    "/uploads/too-long.jpg".into(),
+                    Some("x".repeat(256)),
+                    None,
+                    None,
+                )
+                .await,
+            Err(AppError::BadRequest(_))
+        ));
     }
 }

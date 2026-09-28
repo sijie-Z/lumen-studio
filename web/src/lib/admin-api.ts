@@ -1,4 +1,4 @@
-import { request } from "./api";
+import { PaginatedResponse, request } from "./api";
 
 export interface AdminUser {
   id: number;
@@ -18,8 +18,12 @@ export interface PlatformStats {
   gross_volume: string;
 }
 
-export async function listUsers() {
-  return request<AdminUser[]>("/admin/users", { auth: true });
+export async function listUsers(params: { page: number; page_size: number }) {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    page_size: String(params.page_size)
+  });
+  return request<PaginatedResponse<AdminUser>>(`/admin/users?${query}`, { auth: true });
 }
 
 export async function getStats() {

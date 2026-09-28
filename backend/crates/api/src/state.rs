@@ -10,6 +10,7 @@ use services::review_service::ReviewService;
 use services::service_catalog::ServiceCatalog;
 use services::withdrawal_service::WithdrawalService;
 use services::work_service::WorkService;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -25,4 +26,5 @@ pub struct AppState {
     pub reviews: ReviewService,
     pub admin: AdminService,
     pub withdrawals: WithdrawalService,
+    pub rate_limiter: Option<Arc<crate::middleware::rate_limit::KeyedRateLimiter>>,
 }

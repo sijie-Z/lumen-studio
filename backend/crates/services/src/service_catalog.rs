@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
-use common::AppError;
+use common::{validation::max_chars, AppError};
 use db::entities::{service as service_entity, service_type as type_entity, ServiceModel};
 use rust_decimal::Decimal;
+use sea_orm::sea_query::Expr;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
     PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Select, Set,
@@ -114,6 +115,8 @@ impl ServiceCatalog {
         if input.title.trim().is_empty() {
             return Err(AppError::BadRequest("title is required".into()));
         }
+        max_chars(Some(&input.title), 255, "service title")?;
+        max_chars(input.description.as_deref(), 5000, "service description")?;
         let money =
             app_core::Money::new(input.price).map_err(|e| AppError::BadRequest(e.to_string()))?;
         if money.amount() <= Decimal::ZERO {
@@ -282,11 +285,22 @@ fn apply_service_filters(
         query = query.filter(service_entity::Column::TypeId.eq(type_id));
     }
     if let Some(keyword) = keyword.filter(|value| !value.trim().is_empty()) {
-        query = query.filter(service_entity::Column::Title.like(format!("%{}%", keyword.trim())));
+        query = query.filter(Expr::cust_with_values(
+            "title LIKE ? ESCAPE '\\'",
+            [format!(
+                "%{}%",
+                common::validation::escape_like_pattern(keyword.trim())
+            )],
+        ));
     }
     if let Some(location) = location.filter(|value| !value.trim().is_empty()) {
-        query =
-            query.filter(service_entity::Column::Location.like(format!("%{}%", location.trim())));
+        query = query.filter(Expr::cust_with_values(
+            "location LIKE ? ESCAPE '\\'",
+            [format!(
+                "%{}%",
+                common::validation::escape_like_pattern(location.trim())
+            )],
+        ));
     }
     query
 }
@@ -471,5 +485,97 @@ mod tests {
             .unwrap()
             .iter()
             .any(|service| service.id == service_id && !service.is_active));
+    }
+
+    #[tokio::test]
+    async fn service_search_escapes_like_wildcards_and_limits_title_length() {
+        let db = db::connect("sqlite::memory:").await.unwrap();
+        migrations::run(&db).await.unwrap();
+        let catalog = ServiceCatalog::new(db.clone());
+        catalog.ensure_default_types().await.unwrap();
+        let now = Utc::now();
+
+        user_entity::ActiveModel {
+            username: Set("escape_service_creator".into()),
+            password_hash: Set("hash".into()),
+            nickname: Set("Escape Service Creator".into()),
+            status: Set("active".into()),
+            role: Set("user".into()),
+            verification_status: Set("unverified".into()),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+        creator_entity::ActiveModel {
+            user_id: Set(1),
+            rating: Set(Decimal::new(50, 1)),
+            certification_level: Set("standard".into()),
+            total_services: Set(0),
+            total_appointments: Set(0),
+            total_income: Set(Decimal::ZERO),
+            avg_rating: Set(Decimal::ZERO),
+            created_at: Set(now),
+            updated_at: Set(now),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await
+        .unwrap();
+
+        let type_id = type_entity::Entity::find()
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap()
+            .id;
+        for title in ["100% wedding", "ordinary service"] {
+            catalog
+                .create(
+                    1,
+                    CreateServiceInput {
+                        type_id,
+                        title: title.into(),
+                        description: None,
+                        price: Decimal::new(100_00, 2),
+                        duration: Some(120),
+                        cover_image_url: None,
+                        location: Some("杭州".into()),
+                        tags: None,
+                        options: None,
+                    },
+                )
+                .await
+                .unwrap();
+        }
+
+        let (matches, total) = catalog
+            .list_active_paginated(1, 20, None, Some("%".into()), None)
+            .await
+            .unwrap();
+        assert_eq!(total, 1);
+        assert_eq!(matches[0].title, "100% wedding");
+
+        assert!(matches!(
+            catalog
+                .create(
+                    1,
+                    CreateServiceInput {
+                        type_id,
+                        title: "x".repeat(256),
+                        description: None,
+                        price: Decimal::new(100_00, 2),
+                        duration: Some(120),
+                        cover_image_url: None,
+                        location: None,
+                        tags: None,
+                        options: None,
+                    },
+                )
+                .await,
+            Err(AppError::BadRequest(_))
+        ));
     }
 }

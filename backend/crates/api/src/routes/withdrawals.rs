@@ -1,11 +1,11 @@
 use crate::middleware::auth::AuthUser;
 use crate::state::AppState;
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     routing::{get, patch},
     Json, Router,
 };
-use common::{ApiResponse, AppError};
+use common::{ApiResponse, AppError, PaginatedResponse, Pagination};
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use serde_json::Value;
@@ -21,6 +21,12 @@ struct ApplyWithdrawalBody {
 struct ReviewWithdrawalBody {
     approve: bool,
     note: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PaginationQuery {
+    page: Option<u64>,
+    page_size: Option<u64>,
 }
 
 pub fn router() -> Router<AppState> {
@@ -80,10 +86,22 @@ async fn list_my_withdrawals(
 async fn list_all_withdrawals(
     State(state): State<AppState>,
     AuthUser(claims): AuthUser,
-) -> Result<Json<ApiResponse<Vec<WithdrawalDto>>>, AppError> {
+    Query(query): Query<PaginationQuery>,
+) -> Result<Json<ApiResponse<PaginatedResponse<WithdrawalDto>>>, AppError> {
     require_admin(&claims)?;
-    let withdrawals = state.withdrawals.list_all().await?;
-    Ok(Json(ApiResponse::success(withdrawals)))
+    let pagination = Pagination {
+        page: query.page,
+        page_size: query.page_size,
+    };
+    let page = pagination.page();
+    let page_size = pagination.page_size();
+    let (items, total) = state
+        .withdrawals
+        .list_all_paginated(page, page_size)
+        .await?;
+    Ok(Json(ApiResponse::success(PaginatedResponse::new(
+        items, total, page, page_size,
+    ))))
 }
 
 async fn review_withdrawal(

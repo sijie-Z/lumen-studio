@@ -1,4 +1,4 @@
-import { request } from "./api";
+import { PaginatedResponse, request } from "./api";
 
 export interface WithdrawalDto {
   id: number;
@@ -27,8 +27,12 @@ export async function listMyWithdrawals() {
   return request<WithdrawalDto[]>("/withdrawals", { auth: true });
 }
 
-export async function listAllWithdrawals() {
-  return request<WithdrawalDto[]>("/admin/withdrawals", { auth: true });
+export async function listAllWithdrawals(params: { page: number; page_size: number }) {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    page_size: String(params.page_size)
+  });
+  return request<PaginatedResponse<WithdrawalDto>>(`/admin/withdrawals?${query}`, { auth: true });
 }
 
 export async function reviewWithdrawal(id: number, approve: boolean, note?: string) {

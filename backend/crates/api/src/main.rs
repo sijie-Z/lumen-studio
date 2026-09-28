@@ -3,6 +3,8 @@ mod routes;
 mod state;
 
 use anyhow::{bail, Context};
+use axum::http::{HeaderValue, Uri};
+use axum::middleware as axum_middleware;
 use axum::Router;
 use sea_orm::DatabaseConnection;
 use services::auth_service::AuthService;
@@ -39,6 +41,7 @@ async fn main() -> anyhow::Result<()> {
     services::seed::seed_demo_data(&db)
         .await
         .context("failed to seed demo data")?;
+    let rate_limiter = middleware::rate_limit::from_env()?;
     let app_state = AppState {
         db: db.clone(),
         auth,
@@ -52,18 +55,20 @@ async fn main() -> anyhow::Result<()> {
         reviews: services::review_service::ReviewService::new(db.clone()),
         withdrawals: services::withdrawal_service::WithdrawalService::new(db.clone()),
         admin: services::admin_service::AdminService::new(db),
+        rate_limiter,
     };
 
-    let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+    let cors = cors_layer_from_env()?;
     let upload_dir = std::env::var("UPLOAD_DIR").unwrap_or_else(|_| "uploads".into());
     let app = Router::new()
         .merge(routes::router())
         .nest_service("/uploads", ServeDir::new(&upload_dir))
         .layer(cors)
         .layer(TraceLayer::new_for_http())
+        .layer(axum_middleware::from_fn_with_state(
+            app_state.clone(),
+            middleware::rate_limit::enforce,
+        ))
         .with_state(app_state);
 
     let addr: SocketAddr = std::env::var("BIND_ADDR")
@@ -75,7 +80,11 @@ async fn main() -> anyhow::Result<()> {
         .context("failed to bind TCP listener")?;
     tracing::info!("Photography AI Platform API listening on {addr}");
 
-    axum::serve(listener, app).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
     Ok(())
 }
 
@@ -97,9 +106,46 @@ fn validate_jwt_secret(secret: Option<&str>) -> anyhow::Result<String> {
     Ok(secret.to_string())
 }
 
+fn cors_layer_from_env() -> anyhow::Result<CorsLayer> {
+    let origins = parse_cors_origins(std::env::var("CORS_ORIGINS").ok().as_deref())?;
+    Ok(CorsLayer::new()
+        .allow_origin(origins)
+        .allow_methods(Any)
+        .allow_headers(Any))
+}
+
+fn parse_cors_origins(raw: Option<&str>) -> anyhow::Result<Vec<HeaderValue>> {
+    let raw = raw.map(str::trim).filter(|value| !value.is_empty());
+    let values = match raw {
+        Some(raw) => raw
+            .split(',')
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .collect::<Vec<_>>(),
+        None => vec!["http://localhost:5173", "http://127.0.0.1:5173"],
+    };
+    if values.is_empty() {
+        bail!("CORS_ORIGINS must contain at least one origin when set");
+    }
+    values
+        .into_iter()
+        .map(|origin| {
+            let uri = origin
+                .parse::<Uri>()
+                .with_context(|| format!("invalid CORS origin: {origin}"))?;
+            if !matches!(uri.scheme_str(), Some("http" | "https")) || uri.authority().is_none() {
+                bail!("CORS origins must use http:// or https://: {origin}");
+            }
+            origin
+                .parse::<HeaderValue>()
+                .with_context(|| format!("invalid CORS origin: {origin}"))
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
-    use super::validate_jwt_secret;
+    use super::{parse_cors_origins, validate_jwt_secret};
 
     #[test]
     fn jwt_secret_requires_a_strong_value() {
@@ -109,5 +155,19 @@ mod tests {
 
         let secret = "0123456789abcdef0123456789abcdef";
         assert_eq!(validate_jwt_secret(Some(secret)).unwrap(), secret);
+    }
+
+    #[test]
+    fn cors_origins_default_to_local_dev_and_reject_invalid_values() {
+        let defaults = parse_cors_origins(None).unwrap();
+        assert_eq!(defaults.len(), 2);
+        assert_eq!(defaults[0], "http://localhost:5173");
+
+        let configured =
+            parse_cors_origins(Some("https://example.com, https://admin.example.com")).unwrap();
+        assert_eq!(configured.len(), 2);
+        assert_eq!(configured[1], "https://admin.example.com");
+
+        assert!(parse_cors_origins(Some("not a valid origin")).is_err());
     }
 }

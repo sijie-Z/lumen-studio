@@ -1,4 +1,4 @@
-import { request } from "./api";
+import { PaginatedResponse, request } from "./api";
 
 export interface ReviewDto {
   id: number;
@@ -28,6 +28,13 @@ export async function createReview(input: CreateReviewInput) {
   });
 }
 
-export async function listCreatorReviews(id: number | string) {
-  return request<ReviewDto[]>(`/reviews/creator/${id}`);
+export async function listCreatorReviews(
+  id: number | string,
+  params: { page: number; page_size: number }
+) {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    page_size: String(params.page_size)
+  });
+  return request<PaginatedResponse<ReviewDto>>(`/reviews/creator/${id}?${query}`);
 }

@@ -1,8 +1,19 @@
 use crate::middleware::auth::AuthUser;
 use crate::state::AppState;
-use axum::{extract::State, routing::get, Json, Router};
-use common::{ApiResponse, AppError};
+use axum::{
+    extract::{Query, State},
+    routing::get,
+    Json, Router,
+};
+use common::{ApiResponse, AppError, PaginatedResponse, Pagination};
+use serde::Deserialize;
 use services::admin_service::{AdminUserDto, PlatformStats};
+
+#[derive(Debug, Deserialize)]
+struct PaginationQuery {
+    page: Option<u64>,
+    page_size: Option<u64>,
+}
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -13,10 +24,19 @@ pub fn router() -> Router<AppState> {
 async fn list_users(
     State(state): State<AppState>,
     AuthUser(claims): AuthUser,
-) -> Result<Json<ApiResponse<Vec<AdminUserDto>>>, AppError> {
+    Query(query): Query<PaginationQuery>,
+) -> Result<Json<ApiResponse<PaginatedResponse<AdminUserDto>>>, AppError> {
     require_admin(&claims)?;
-    let users = state.admin.list_users().await?;
-    Ok(Json(ApiResponse::success(users)))
+    let pagination = Pagination {
+        page: query.page,
+        page_size: query.page_size,
+    };
+    let page = pagination.page();
+    let page_size = pagination.page_size();
+    let (items, total) = state.admin.list_users_paginated(page, page_size).await?;
+    Ok(Json(ApiResponse::success(PaginatedResponse::new(
+        items, total, page, page_size,
+    ))))
 }
 
 async fn stats(
