@@ -21,13 +21,10 @@ import { cn } from "../lib/cn";
 import { listFavorites, type FavoriteDto, type FavoriteTargetType } from "../lib/favorites-api";
 import {
   listAppointments,
-  listCreators,
-  listServices,
   transitionAppointment
 } from "../lib/marketplace-api";
 import { payAppointment, recharge } from "../lib/payment-api";
 import { createReview } from "../lib/reviews-api";
-import { listWorks } from "../lib/works-api";
 
 type FavoriteFilter = "all" | FavoriteTargetType;
 
@@ -86,26 +83,14 @@ export default function Account() {
     enabled: isAuthenticated()
   }));
   const [favoriteFilter, setFavoriteFilter] = createSignal<FavoriteFilter>("all");
-  const favorites = createQuery(() => ({
-    queryKey: ["favorites"] as const,
-    queryFn: () => listFavorites(),
-    enabled: isAuthenticated()
-  }));
-  const favoriteWorks = createQuery(() => ({
-    queryKey: ["works"] as const,
-    queryFn: listWorks,
-    enabled: isAuthenticated()
-  }));
-  const favoriteServices = createQuery(() => ({
-    queryKey: ["services"] as const,
-    queryFn: listServices,
-    enabled: isAuthenticated()
-  }));
-  const favoriteCreators = createQuery(() => ({
-    queryKey: ["creators"] as const,
-    queryFn: listCreators,
-    enabled: isAuthenticated()
-  }));
+  const favorites = createQuery(() => {
+    const filter = favoriteFilter();
+    return {
+      queryKey: ["favorites", filter] as const,
+      queryFn: () => listFavorites(filter === "all" ? undefined : filter),
+      enabled: isAuthenticated()
+    };
+  });
   const [rechargeAmount, setRechargeAmount] = createSignal("5000");
   const [recharging, setRecharging] = createSignal(false);
   const [payingId, setPayingId] = createSignal<number | null>(null);
@@ -118,49 +103,12 @@ export default function Account() {
   const [actionError, setActionError] = createSignal("");
   const hasAppointments = () => (appointments.data?.length ?? 0) > 0;
   const focusedAppointmentId = () => Number(searchParams.appointment ?? 0);
-  const favoriteItems = createMemo(() => {
-    const filter = favoriteFilter();
-    return (favorites.data ?? []).filter(
-      (item) => filter === "all" || item.target_type === filter
-    );
-  });
+  const favoriteItems = createMemo(() => favorites.data ?? []);
 
   function favoriteLink(item: FavoriteDto) {
     if (item.target_type === "work") return `/works/${item.target_id}`;
     if (item.target_type === "service") return `/services/${item.target_id}`;
     return `/creators/${item.target_id}`;
-  }
-
-  function favoriteTitle(item: FavoriteDto) {
-    if (item.target_type === "work") {
-      return (
-        (favoriteWorks.data ?? []).find((work) => work.id === item.target_id)?.title ??
-        `作品 #${item.target_id}`
-      );
-    }
-    if (item.target_type === "service") {
-      return (
-        (favoriteServices.data ?? []).find((service) => service.id === item.target_id)?.title ??
-        `服务 #${item.target_id}`
-      );
-    }
-    const creator = (favoriteCreators.data ?? []).find(
-      (profile) => profile.id === item.target_id
-    );
-    return creator?.nickname?.trim() || `创作者 #${item.target_id}`;
-  }
-
-  function favoriteImage(item: FavoriteDto) {
-    if (item.target_type === "work") {
-      return (favoriteWorks.data ?? []).find((work) => work.id === item.target_id)?.image_url;
-    }
-    if (item.target_type === "service") {
-      return (
-        (favoriteServices.data ?? []).find((service) => service.id === item.target_id)
-          ?.cover_image_url ?? undefined
-      );
-    }
-    return undefined;
   }
 
   function favoriteMeta(item: FavoriteDto) {
@@ -515,12 +463,12 @@ export default function Account() {
                 {(item) => (
                   <A href={favoriteLink(item)} class="group no-underline">
                     <Card class="h-full overflow-hidden transition-colors group-hover:border-primary/60">
-                      <Show when={favoriteImage(item)}>
+                      <Show when={item.cover_image_url}>
                         {(src) => (
                           <div class="aspect-[16/10] overflow-hidden bg-ink">
                             <img
                               src={src()}
-                              alt={favoriteTitle(item)}
+                              alt={item.title}
                               loading="lazy"
                               class="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                             />
@@ -534,7 +482,10 @@ export default function Account() {
                             {formatFavoriteDate(item.created_at)}
                           </span>
                         </div>
-                        <p class="mt-3 line-clamp-1 font-medium">{favoriteTitle(item)}</p>
+                        <p class="mt-3 line-clamp-1 font-medium">{item.title}</p>
+                        <Show when={item.subtitle}>
+                          <p class="mt-1 line-clamp-1 text-xs text-muted">{item.subtitle}</p>
+                        </Show>
                       </CardContent>
                     </Card>
                   </A>

@@ -1,13 +1,15 @@
 import { A, useNavigate, useParams } from "@solidjs/router";
 import { createQuery, useQueryClient } from "@tanstack/solid-query";
-import { ArrowLeft, CalendarDays, Clock, MapPin, Tag } from "lucide-solid";
-import { createSignal, Show } from "solid-js";
+import { ArrowLeft, CalendarDays, Clock, Heart, MapPin, Tag } from "lucide-solid";
+import { createEffect, createMemo, createSignal, Show } from "solid-js";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { EmptyState, ErrorState, LoadingState } from "../components/ui/state";
 import { StepGuide, type GuideStep } from "../components/onboarding/step-guide";
+import { cn } from "../lib/cn";
+import { favoriteStatus, toggleFavorite, type FavoriteStateDto } from "../lib/favorites-api";
 import { createAppointment, getService, type Service } from "../lib/marketplace-api";
 import { isAuthenticated } from "../lib/auth-api";
 
@@ -19,6 +21,11 @@ export default function ServiceDetail() {
     queryKey: ["service", params.id] as const,
     queryFn: () => getService(params.id ?? "")
   }));
+  const favorite = createQuery(() => ({
+    queryKey: ["favorite-status", "service", params.id] as const,
+    queryFn: () => favoriteStatus("service", Number(params.id)),
+    enabled: isAuthenticated() && Boolean(params.id)
+  }));
   const [startLocal, setStartLocal] = createSignal("");
   const [location, setLocation] = createSignal("");
   const [notes, setNotes] = createSignal("");
@@ -26,6 +33,12 @@ export default function ServiceDetail() {
   const [error, setError] = createSignal("");
   const [success, setSuccess] = createSignal(false);
   const [createdAppointmentId, setCreatedAppointmentId] = createSignal<number | null>(null);
+  const [pendingFavorite, setPendingFavorite] = createSignal(false);
+  const [favoriteState, setFavoriteState] = createSignal<FavoriteStateDto | null>(null);
+  const [favoriteError, setFavoriteError] = createSignal("");
+  const favoriteView = createMemo(
+    () => favoriteState() ?? favorite.data ?? { favorited: false, count: 0 }
+  );
   const bookingSteps = (): GuideStep[] => [
     {
       title: "选择预约时间",
@@ -43,6 +56,34 @@ export default function ServiceDetail() {
       done: false
     }
   ];
+
+  createEffect(() => {
+    params.id;
+    setFavoriteState(null);
+    setFavoriteError("");
+  });
+
+  async function handleFavorite() {
+    if (!isAuthenticated()) {
+      navigate("/login");
+      return;
+    }
+    const current = service.data;
+    if (!current) return;
+
+    setPendingFavorite(true);
+    setFavoriteError("");
+    try {
+      const result = await toggleFavorite("service", current.id);
+      setFavoriteState(result);
+      queryClient.setQueryData(["favorite-status", "service", params.id], result);
+      await queryClient.invalidateQueries({ queryKey: ["favorites"] });
+    } catch (err) {
+      setFavoriteError(err instanceof Error ? err.message : "收藏失败，请稍后重试。");
+    } finally {
+      setPendingFavorite(false);
+    }
+  }
 
   async function submit() {
     if (!isAuthenticated()) {
@@ -134,6 +175,27 @@ export default function ServiceDetail() {
                     <span class="flex items-center gap-1.5"><Tag size={15} />{service.data!.tags}</span>
                   )}
                 </div>
+                <button
+                  type="button"
+                  onClick={handleFavorite}
+                  disabled={pendingFavorite()}
+                  aria-pressed={favoriteView().favorited}
+                  class={cn(
+                    "mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium transition-colors disabled:opacity-60",
+                    favoriteView().favorited
+                      ? "border-coral/60 bg-coral/15 text-coral hover:bg-coral/20"
+                      : "border-line bg-transparent text-foreground hover:bg-surface"
+                  )}
+                >
+                  <Heart size={16} class={favoriteView().favorited ? "fill-current" : ""} />
+                  {pendingFavorite() ? "处理中" : favoriteView().favorited ? "已收藏服务" : "收藏服务"}
+                  <Show when={isAuthenticated() && favorite.data}>
+                    <span class="text-xs text-muted">{favoriteView().count}</span>
+                  </Show>
+                </button>
+                <Show when={favoriteError()}>
+                  <p class="mt-2 text-xs text-destructive" role="alert">{favoriteError()}</p>
+                </Show>
                 {service.data!.description && (
                   <p class="mt-6 leading-7 text-muted">{service.data!.description}</p>
                 )}

@@ -44,7 +44,9 @@ mod tests {
         http::{Request, StatusCode},
     };
     use chrono::Utc;
-    use db::entities::{creator_profile as creator_entity, user as user_entity};
+    use db::entities::{
+        creator_profile as creator_entity, user as user_entity, work as work_entity,
+    };
     use rust_decimal::Decimal;
     use sea_orm::{ActiveModelTrait, EntityTrait, IntoActiveModel, Set};
     use serde_json::Value;
@@ -395,9 +397,21 @@ mod tests {
 
     #[tokio::test]
     async fn favorite_toggle_api_flow() {
-        let (app, _db) = test_app_with_db().await;
+        let (app, db) = test_app_with_db().await;
         register_user(&app, "favorite_user", None).await;
         let token = login_token(&app, "favorite_user").await;
+        let now = Utc::now();
+        work_entity::ActiveModel {
+            id: Set(99),
+            user_id: Set(1),
+            image_url: Set("https://example.com/work-99.jpg".into()),
+            title: Set(Some("API Favorite Work".into())),
+            created_at: Set(now),
+            ..Default::default()
+        }
+        .insert(&db)
+        .await
+        .unwrap();
 
         let toggle_request = |target_type: &str, target_id: i32| {
             Request::builder()
@@ -438,6 +452,13 @@ mod tests {
             .unwrap();
         assert_eq!(invalid.status(), StatusCode::BAD_REQUEST);
 
+        let missing = app
+            .clone()
+            .oneshot(toggle_request("service", 999))
+            .await
+            .unwrap();
+        assert_eq!(missing.status(), StatusCode::NOT_FOUND);
+
         // 再次收藏后，状态接口应反映已收藏与总数。
         app.clone()
             .oneshot(toggle_request("work", 99))
@@ -476,6 +497,12 @@ mod tests {
         assert_eq!(items.len(), 1);
         assert_eq!(items[0]["target_type"], "work");
         assert_eq!(items[0]["target_id"], 99);
+        assert_eq!(items[0]["title"], "API Favorite Work");
+        assert_eq!(
+            items[0]["cover_image_url"],
+            "https://example.com/work-99.jpg"
+        );
+        assert_eq!(items[0]["subtitle"], "favorite_user");
     }
 
     #[tokio::test]

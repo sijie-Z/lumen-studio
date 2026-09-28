@@ -34,24 +34,23 @@
 - [x] Stabilize browser regressions by serving the production Vite build
 - [x] Creator analytics dashboard: settled income, appointment completion, ratings, status and monthly revenue
 - [x] Favorites for works, services, and creators (real toggle, status, count, account collection list)
+- [x] Validate favorite targets and serve joined favorite list
 
 ## Recent Changes
-- backend/crates/db/src/entities/favorite.rs
-- backend/crates/db/src/migrations/m20260929_000009_create_favorites.rs
-- backend/crates/services/src/favorite_service.rs
-- backend/crates/api/src/routes/favorites.rs
-- backend/crates/api/src/state.rs
-- backend/crates/api/src/main.rs
-- web/src/lib/favorites-api.ts
-- web/src/pages/work-detail.tsx
-- web/src/pages/creator-profile.tsx
+- web/scripts/favorites_e2e.py
+- web/src/pages/service-detail.tsx
 - web/src/pages/account.tsx
+- web/src/lib/favorites-api.ts
+- backend/crates/api/src/routes/mod.rs
+- backend/crates/services/tests/favorite_flow.rs
+- backend/crates/services/src/favorite_service.rs
+- .project
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
 - Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents
-- Long browser flows should use the production preview test runtime because the Vite dev server is resource-heavy on this Windows host
+- Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment
+- Creator analytics has Rust and build coverage but still needs a populated browser visual check
 
 ## Next Step
-- Run a browser-level favorite flow check (favorite from work detail and creator profile, confirm the account collection list, then unfavorite) against an isolated test database
 - Run browser-level visual and interaction checks for the creator analytics dashboard, including empty and populated states

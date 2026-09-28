@@ -1,6 +1,11 @@
+use std::collections::{HashMap, HashSet};
+
 use chrono::{DateTime, Utc};
 use common::AppError;
-use db::entities::favorite as favorite_entity;
+use db::entities::{
+    creator_profile as creator_entity, favorite as favorite_entity, service as service_entity,
+    user as user_entity, work as work_entity,
+};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
     QueryOrder, Set,
@@ -21,9 +26,20 @@ pub type FavoriteStatusDto = FavoriteToggleDto;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FavoriteDto {
+    pub id: i32,
     pub target_type: String,
     pub target_id: i32,
+    pub title: String,
+    pub cover_image_url: Option<String>,
+    pub subtitle: Option<String>,
     pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone)]
+struct FavoritePresentation {
+    title: String,
+    cover_image_url: Option<String>,
+    subtitle: Option<String>,
 }
 
 #[derive(Clone)]
@@ -47,6 +63,29 @@ impl FavoriteService {
         }
     }
 
+    async fn target_exists(&self, target_type: &str, target_id: i32) -> Result<bool, AppError> {
+        let exists = match target_type {
+            "work" => work_entity::Entity::find_by_id(target_id)
+                .one(&self.db)
+                .await
+                .map_err(AppError::from_anyhow)?
+                .is_some(),
+            "service" => service_entity::Entity::find_by_id(target_id)
+                .one(&self.db)
+                .await
+                .map_err(AppError::from_anyhow)?
+                .is_some(),
+            "creator" => creator_entity::Entity::find_by_id(target_id)
+                .one(&self.db)
+                .await
+                .map_err(AppError::from_anyhow)?
+                .is_some(),
+            _ => unreachable!("target type was normalized before this call"),
+        };
+
+        Ok(exists)
+    }
+
     /// 切换收藏状态：已收藏则取消，未收藏则新增。返回最新状态和总收藏数。
     pub async fn toggle(
         &self,
@@ -55,6 +94,12 @@ impl FavoriteService {
         target_id: i32,
     ) -> Result<FavoriteToggleDto, AppError> {
         let target_type = Self::normalize_target_type(target_type)?;
+        if !self.target_exists(&target_type, target_id).await? {
+            return Err(AppError::NotFound(format!(
+                "favorite target {target_type} #{target_id} does not exist"
+            )));
+        }
+
         let existing = favorite_entity::Entity::find()
             .filter(
                 favorite_entity::Column::UserId
@@ -168,14 +213,202 @@ impl FavoriteService {
         }
 
         let rows = query.all(&self.db).await.map_err(AppError::from_anyhow)?;
-        Ok(rows.into_iter().map(to_dto).collect())
+        let mut presentations = HashMap::new();
+
+        let work_ids = ids_for(&rows, "work");
+        if !work_ids.is_empty() {
+            presentations.extend(self.load_work_presentations(work_ids).await?);
+        }
+
+        let service_ids = ids_for(&rows, "service");
+        if !service_ids.is_empty() {
+            presentations.extend(self.load_service_presentations(service_ids).await?);
+        }
+
+        let creator_ids = ids_for(&rows, "creator");
+        if !creator_ids.is_empty() {
+            presentations.extend(self.load_creator_presentations(creator_ids).await?);
+        }
+
+        Ok(rows
+            .into_iter()
+            .map(|model| {
+                let key = (model.target_type.clone(), model.target_id);
+                let presentation = presentations
+                    .remove(&key)
+                    .unwrap_or_else(|| fallback_presentation(&model.target_type, model.target_id));
+
+                FavoriteDto {
+                    id: model.id,
+                    target_type: model.target_type,
+                    target_id: model.target_id,
+                    title: presentation.title,
+                    cover_image_url: presentation.cover_image_url,
+                    subtitle: presentation.subtitle,
+                    created_at: model.created_at,
+                }
+            })
+            .collect())
+    }
+
+    async fn load_work_presentations(
+        &self,
+        ids: Vec<i32>,
+    ) -> Result<HashMap<(String, i32), FavoritePresentation>, AppError> {
+        let works = work_entity::Entity::find()
+            .filter(work_entity::Column::Id.is_in(ids))
+            .all(&self.db)
+            .await
+            .map_err(AppError::from_anyhow)?;
+
+        let user_ids = works
+            .iter()
+            .map(|work| work.user_id)
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+        let users = user_entity::Entity::find()
+            .filter(user_entity::Column::Id.is_in(user_ids))
+            .all(&self.db)
+            .await
+            .map_err(AppError::from_anyhow)?
+            .into_iter()
+            .map(|user| (user.id, user))
+            .collect::<HashMap<_, _>>();
+
+        Ok(works
+            .into_iter()
+            .map(|work| {
+                let title =
+                    clean_string(work.title).unwrap_or_else(|| format!("作品 #{}", work.id));
+                let subtitle = users
+                    .get(&work.user_id)
+                    .map(display_user_name)
+                    .filter(|name| !name.trim().is_empty());
+                (
+                    ("work".into(), work.id),
+                    FavoritePresentation {
+                        title,
+                        cover_image_url: clean_string(Some(work.image_url)),
+                        subtitle,
+                    },
+                )
+            })
+            .collect())
+    }
+
+    async fn load_service_presentations(
+        &self,
+        ids: Vec<i32>,
+    ) -> Result<HashMap<(String, i32), FavoritePresentation>, AppError> {
+        let services = service_entity::Entity::find()
+            .filter(service_entity::Column::Id.is_in(ids))
+            .all(&self.db)
+            .await
+            .map_err(AppError::from_anyhow)?;
+
+        Ok(services
+            .into_iter()
+            .map(|service| {
+                let subtitle = clean_string(service.location)
+                    .or_else(|| Some(format!("¥{}", service.price.normalize())));
+                (
+                    ("service".into(), service.id),
+                    FavoritePresentation {
+                        title: service.title,
+                        cover_image_url: clean_string(service.cover_image_url),
+                        subtitle,
+                    },
+                )
+            })
+            .collect())
+    }
+
+    async fn load_creator_presentations(
+        &self,
+        ids: Vec<i32>,
+    ) -> Result<HashMap<(String, i32), FavoritePresentation>, AppError> {
+        let creators = creator_entity::Entity::find()
+            .filter(creator_entity::Column::Id.is_in(ids))
+            .all(&self.db)
+            .await
+            .map_err(AppError::from_anyhow)?;
+
+        let user_ids = creators
+            .iter()
+            .map(|creator| creator.user_id)
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+        let users = user_entity::Entity::find()
+            .filter(user_entity::Column::Id.is_in(user_ids))
+            .all(&self.db)
+            .await
+            .map_err(AppError::from_anyhow)?
+            .into_iter()
+            .map(|user| (user.id, user))
+            .collect::<HashMap<_, _>>();
+
+        Ok(creators
+            .into_iter()
+            .map(|creator| {
+                let user = users.get(&creator.user_id);
+                let title = user
+                    .map(display_user_name)
+                    .filter(|name| !name.trim().is_empty())
+                    .unwrap_or_else(|| format!("创作者 #{}", creator.id));
+                let subtitle = clean_string(creator.introduction)
+                    .or_else(|| clean_string(creator.bio))
+                    .or_else(|| user.map(|user| format!("@{}", user.username)));
+                (
+                    ("creator".into(), creator.id),
+                    FavoritePresentation {
+                        title,
+                        cover_image_url: user
+                            .and_then(|user| clean_string(user.avatar_url.clone())),
+                        subtitle,
+                    },
+                )
+            })
+            .collect())
     }
 }
 
-fn to_dto(model: favorite_entity::Model) -> FavoriteDto {
-    FavoriteDto {
-        target_type: model.target_type,
-        target_id: model.target_id,
-        created_at: model.created_at,
+fn ids_for(rows: &[favorite_entity::Model], target_type: &str) -> Vec<i32> {
+    rows.iter()
+        .filter(|row| row.target_type == target_type)
+        .map(|row| row.target_id)
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+fn clean_string(value: Option<String>) -> Option<String> {
+    value.and_then(|value| {
+        let value = value.trim();
+        (!value.is_empty()).then(|| value.to_string())
+    })
+}
+
+fn display_user_name(user: &user_entity::Model) -> String {
+    let nickname = user.nickname.trim();
+    if !nickname.is_empty() {
+        nickname.to_string()
+    } else {
+        user.username.clone()
+    }
+}
+
+fn fallback_presentation(target_type: &str, target_id: i32) -> FavoritePresentation {
+    let label = match target_type {
+        "work" => "作品",
+        "service" => "服务",
+        "creator" => "创作者",
+        _ => "收藏",
+    };
+    FavoritePresentation {
+        title: format!("{label} #{target_id}"),
+        cover_image_url: None,
+        subtitle: Some("目标已不可用".into()),
     }
 }

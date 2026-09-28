@@ -192,3 +192,11 @@
 
 *2026-09-29 00:49*
 
+## ADR-025: Favorites validate targets and resolve card data server-side
+
+**Reason**: A polymorphic favorite must not point at a deleted or fabricated target, and clients should not reconstruct card metadata by downloading broad list pages.
+
+**Impact**: Toggle writes now verify work, service, or creator existence and return 404 for missing targets. Favorite lists resolve title, cover image, and subtitle in the service layer with bounded ID lookups, preserving stable rendering even when favorites fall outside public list pages.
+
+*2026-09-29 01:04*
+

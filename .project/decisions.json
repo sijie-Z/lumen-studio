@@ -131,6 +131,24 @@
       "reason": "Summing appointments.total_price included pending, cancelled, and refunded orders",
       "impact": "Admin GMV now counts payment_type=appointment and status=success only; recharges and settlement records are excluded",
       "date": "2026-09-28 20:59"
+    },
+    {
+      "title": "Creator analytics aggregates settled income and domain records",
+      "reason": "Creator-facing analytics must distinguish paid GMV from income actually available to the creator and must keep each dashboard metric tied to its authoritative domain table.",
+      "impact": "Total income comes from `creator_profiles.total_income`, monthly revenue comes from successful `payment_type=settlement` rows, appointment rates come from `appointments`, rating metrics come from `reviews` plus the cached `creator_profiles.avg_rating`, and pending withdrawal total comes from pending `withdrawals`.",
+      "date": "2026-09-29 00:41"
+    },
+    {
+      "title": "Favorites are one polymorphic table with a unique triple",
+      "reason": "Works, services, and creators all need a bookmark/like action, and duplicating three near-identical tables would multiply migration, service, and API code without adding real domain value.",
+      "impact": "A single `favorites` table stores `(user_id, target_type, target_id, created_at)` with a unique index on `(user_id, target_type, target_id)` and a lookup index on `(user_id, target_type)`. `target_type` is restricted to `work | service | creator` at the service boundary, so invalid values are rejected with 400 before touching the database. Toggle is read-then-write, and the unique index is the final guard against concurrent duplicate inserts; a unique-constraint race is treated as already-favorited instead of surfacing a 500. Counts are derived from the table rather than cached columns.",
+      "date": "2026-09-29 00:49"
+    },
+    {
+      "title": "Favorites validate targets and resolve card data server-side",
+      "reason": "A polymorphic favorite must not point at a deleted or fabricated target, and clients should not reconstruct card metadata by downloading broad list pages.",
+      "impact": "Toggle writes now verify work, service, or creator existence and return 404 for missing targets. Favorite lists resolve title, cover image, and subtitle in the service layer with bounded ID lookups, preserving stable rendering even when favorites fall outside public list pages.",
+      "date": "2026-09-29 01:04"
     }
   ]
 }

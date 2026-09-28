@@ -250,3 +250,10 @@
 - **Risks**: The account favorites list resolves titles and cover images from the first 100 works/services/creators, so an older favorite beyond that page falls back to "作品/服务 #id" or a text-only card. A dedicated favorites-join endpoint is the next step if the collection grows.
 - **Next**: Run a browser-level favorite flow check (favorite from work detail and creator profile, confirm account list, unfavorite) against an isolated test database
 
+### [2026-09-29 01:04] main — Validate favorite targets and serve joined favorite list
+
+- **Task**: Validate favorite targets and serve joined favorite list
+- **Branch**: main
+- **Summary**: Hardened favorites end to end: toggle now validates that work, service, or creator targets exist and returns 404 for missing IDs; GET /favorites now returns joined title, cover image, subtitle, target metadata, and creation time resolved in the service layer; account favorites render that joined data directly with server-side filter queries and no longer download the first 100 works/services/creators. Added service and API tests plus web/scripts/favorites_e2e.py, which passed against an isolated database and covered anonymous redirect, favorite/unfavorite counts, three target types, account filters, and removal. cargo test --workspace passed 66 tests; pnpm build passed 1848 modules; diff check and main database fingerprint checks passed.
+- **Next**: Run browser-level visual and interaction checks for the creator analytics dashboard, including empty and populated states
+

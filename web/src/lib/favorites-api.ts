@@ -8,8 +8,12 @@ export interface FavoriteStateDto {
 }
 
 export interface FavoriteDto {
+  id: number;
   target_type: FavoriteTargetType;
   target_id: number;
+  title: string;
+  cover_image_url?: string | null;
+  subtitle?: string | null;
   created_at: string;
 }
 

@@ -1,7 +1,8 @@
 # Task Board
 
 ## TODO
-- Continue product-level UI, workflow, and visual polish
+- Add browser coverage for pagination, search, filters, and creator onboarding
+- Adversarial re-review and browser regression for hardened security boundaries
 
 ## DOING
 - (empty)
@@ -40,4 +41,5 @@
 - Stabilize browser regressions by serving the production Vite build
 - Creator analytics dashboard: settled income, appointment completion, ratings, status and monthly revenue
 - Favorites for works, services, and creators (real toggle, status, count, account collection list)
+- Validate favorite targets and serve joined favorite list
 
