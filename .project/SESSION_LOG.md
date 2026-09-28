@@ -188,3 +188,13 @@
 - **Risks**: Postgres-specific row locking is still only statically reviewed because no live Postgres test instance is available.
 - **Next**: Add Postgres integration coverage for concurrent withdrawal review when infrastructure is available; continue development.
 
+### [2026-09-28 20:50] main — Add project README and prepare GitHub publication
+
+- **Task**: Add a professional root README and publish the repository to GitHub
+- **Branch**: main
+- **Files**: README.md; .project/CURRENT_STATE.md; .project/TASK_BOARD.md; .project/SESSION_LOG.md
+- **Summary**: Documented the real Rust/SolidJS architecture, crate boundaries, capability roles, transaction and event boundaries, implemented business flows, local setup, seed accounts, testing commands, design tradeoffs, and known limitations. Verified the repository has no configured Git remote and no official authenticated GitHub CLI.
+- **Verification**: `git diff --check` passed; tracked database, uploads, and legacy files were confirmed absent from Git tracking.
+- **Risks**: GitHub push is blocked until the official `gh` CLI is installed and authenticated, or a remote URL with credentials is supplied.
+- **Next**: Commit the README, authenticate GitHub CLI, create the public repository, and push `main`.
+

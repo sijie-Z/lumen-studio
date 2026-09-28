@@ -34,4 +34,5 @@
 - Address adversarial security and consistency findings
 - Close remaining validation and concurrency gaps
 - Third-round adversarial re-review for exact duration, service duration bounds, and concurrent withdrawal review
+- Add root README with architecture, setup, seed accounts, tests, and known limitations
 

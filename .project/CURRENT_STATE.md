@@ -28,8 +28,10 @@
 - [x] Address adversarial security and consistency findings
 - [x] Close remaining validation and concurrency gaps
 - [x] Third-round adversarial re-review: exact duration, duration bounds, and concurrent withdrawal review approved
+- [x] Add root README with architecture, setup, seed accounts, tests, and known limitations
 
 ## Recent Changes
+- README.md
 - web/scripts/audit_probe.py
 - web/scripts/test_runtime.py
 - backend/crates/api/src/routes/mod.rs
@@ -52,4 +54,5 @@
 - Postgres-specific row locking remains statically reviewed but not executed against a live Postgres instance
 
 ## Next Step
-- Add a Postgres integration test for concurrent withdrawal review when a test database is available; continue product development
+- Publish the repository to GitHub after official GitHub CLI authentication is available.
+- Add a Postgres integration test for concurrent withdrawal review when a test database is available.
