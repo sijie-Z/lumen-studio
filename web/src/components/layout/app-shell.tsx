@@ -25,7 +25,7 @@ interface NavItem {
 }
 
 const modeLabels: Record<ShellMode, string> = {
-  public: "Lumina",
+  public: "Lumen Studio",
   customer: "客户中心",
   creator: "创作者工作台",
   admin: "管理后台"
@@ -76,11 +76,11 @@ export default function AppShell(props: AppShellProps) {
     <header class="sticky top-0 z-50 border-b border-line bg-ink/90 text-paper backdrop-blur-xl">
       <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5 md:px-8">
         <div class="flex min-w-0 items-center gap-4">
-          <A href="/" class="flex shrink-0 items-center gap-2.5 text-paper no-underline" aria-label="Lumina 首页">
+          <A href="/" class="flex shrink-0 items-center gap-2.5 text-paper no-underline" aria-label="Lumen Studio 首页">
             <span class="grid size-9 place-items-center rounded-lg bg-amber text-ink">
               <Camera size={19} stroke-width={2.2} />
             </span>
-            <span class="hidden font-display text-xl font-semibold sm:inline">Lumina</span>
+            <span class="hidden font-display text-xl font-semibold sm:inline">Lumen Studio</span>
           </A>
           <span class="hidden h-5 w-px bg-line sm:block" />
           <span class="hidden text-sm text-muted md:inline">{modeLabels[props.mode]}</span>

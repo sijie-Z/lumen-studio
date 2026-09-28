@@ -11,7 +11,7 @@ export default function Assistant() {
   const [messages, setMessages] = createSignal<ChatMessage[]>([
     {
       role: "assistant",
-      content: "你好，我是 Lumina 创意助手。想拍什么，我帮你找。"
+      content: "你好，我是 Lumen AI。想拍什么，我帮你找。"
     }
   ]);
 
@@ -59,7 +59,7 @@ export default function Assistant() {
                 <Bot size={19} />
               </span>
               <div>
-                <p class="text-sm font-medium text-paper">Lumina AI</p>
+                <p class="text-sm font-medium text-paper">Lumen AI</p>
                 <p class="text-xs text-teal">在线</p>
               </div>
             </div>

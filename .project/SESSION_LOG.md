@@ -205,3 +205,10 @@
 - **Summary**: Fixed P2 findings: GMV now sums successful appointment payments only; admin users, admin withdrawals, and creator reviews use the shared page/page_size contract; frontend admin and creator review lists use the paginated shape; CORS origins are environment-configured with local defaults; per-IP governor rate limiting is enabled in production startup with test-safe disablement; LIKE wildcards are escaped; and service/work/review/creator text fields have length limits. cargo test --workspace passed 57 tests; pnpm build passed 1846 modules.
 - **Next**: Run browser-level checks for admin pagination, creator review pagination, CORS, and rate-limit behavior under a configured environment
 
+### [2026-09-29 00:14] main — Rebrand to Lumen Studio
+
+- **Task**: Rebrand to Lumen Studio
+- **Branch**: main
+- **Summary**: Renamed the GitHub repository to lumen-studio, updated origin, and rebranded user-facing copy from Lumina/Photography Service Platform to Lumen Studio. README title and positioning, page title, shared header/footer, home, login, register, and Lumen AI assistant copy were updated. Legacy localStorage keys lumina.token and lumina:onboarding:* were intentionally preserved to avoid login-state and onboarding regression. pnpm build passed with 1846 modules; cargo test --workspace passed 57 tests; git diff --check passed. GitHub rename API returned 200.
+- **Next**: Confirm the lumen-studio remote and continue browser-level rebrand checks
+

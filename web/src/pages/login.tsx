@@ -48,7 +48,7 @@ export default function Login() {
           <span class="grid size-10 place-items-center rounded-lg bg-amber text-ink">
             <Camera size={20} />
           </span>
-          <span class="font-display text-2xl font-semibold">Lumina</span>
+          <span class="font-display text-2xl font-semibold">Lumen Studio</span>
         </A>
 
         <div class="rounded-lg border border-white/10 bg-surface/90 p-7 shadow-2xl backdrop-blur-xl md:p-8">

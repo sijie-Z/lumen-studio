@@ -79,10 +79,10 @@ export default function Home() {
             <div class="max-w-3xl">
               <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/25 px-3 py-1.5 text-xs text-paper/90 backdrop-blur">
                 <Sparkles size={14} class="text-amber" />
-                AI 原生创意服务平台
+                摄影与创意服务预约平台
               </div>
               <h1 class="font-display text-5xl leading-[1.04] font-semibold text-paper sm:text-6xl lg:text-7xl">
-                Lumina
+                Lumen Studio
               </h1>
               <p class="mt-5 max-w-2xl text-lg leading-8 text-paper/80 md:text-xl">
                 发现值得被定格的瞬间，遇见与你同频的影像创作者。

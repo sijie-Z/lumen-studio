@@ -35,4 +35,5 @@
 - Address adversarial security and consistency findings
 - Close remaining validation and concurrency gaps
 - Address P2 findings: stats, pagination, hardening
+- Rebrand to Lumen Studio
 

@@ -9,10 +9,10 @@ export default function SiteFooter() {
             <span class="grid size-8 place-items-center rounded-lg bg-amber text-ink">
               <Camera size={16} />
             </span>
-            <span class="font-display text-lg font-semibold">Lumina</span>
+            <span class="font-display text-lg font-semibold">Lumen Studio</span>
           </div>
           <p class="mt-4 text-sm leading-6 text-muted">
-            摄影、影像与视觉创作者的一站式 AI 服务平台。
+            摄影、影像与视觉创作者的一站式预约服务平台。
           </p>
         </div>
         <div class="grid grid-cols-2 gap-8 text-sm sm:grid-cols-3">
@@ -33,14 +33,14 @@ export default function SiteFooter() {
           <div>
             <p class="font-medium text-paper">联系</p>
             <div class="mt-3 flex flex-col gap-2 text-muted">
-              <span>hello@lumina.dev</span>
+              <span>hello@lumen.studio</span>
               <span>上海</span>
             </div>
           </div>
         </div>
       </div>
       <div class="mx-auto mt-10 max-w-7xl border-t border-white/8 pt-5 text-xs text-muted">
-        © 2026 Lumina Creative Platform
+        © 2026 Lumen Studio
       </div>
     </footer>
   );

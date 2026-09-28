@@ -28,18 +28,19 @@
 - [x] Address adversarial security and consistency findings
 - [x] Close remaining validation and concurrency gaps
 - [x] Address P2 findings: stats, pagination, hardening
+- [x] Rebrand to Lumen Studio
 
 ## Recent Changes
+- web/src/components/ai/assistant.tsx
+- web/src/pages/register.tsx
+- web/src/pages/login.tsx
+- web/src/pages/home.tsx
+- web/src/components/layout/site-footer.tsx
+- web/src/components/layout/app-shell.tsx
+- web/index.html
+- README.md
 - backend/crates/api, backend/crates/common, backend/crates/services, web/src/lib, web/src/pages
 - backend/crates/api/src/routes/mod.rs
-- backend/crates/services/tests/withdrawal_flow.rs
-- backend/crates/common/src/error.rs
-- backend/crates/services/src/service_catalog.rs
-- backend/crates/services/src/review_service.rs
-- backend/crates/services/src/creator_service.rs
-- backend/crates/api/src/routes/service_routes.rs
-- backend/crates/api/src/routes/works.rs
-- backend/crates/services/src/auth_service.rs
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
@@ -49,4 +50,4 @@
 - Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment
 
 ## Next Step
-- Run browser-level checks for admin pagination, creator review pagination, CORS, and rate-limit behavior under a configured environment
+- Confirm the lumen-studio remote and continue browser-level rebrand checks
