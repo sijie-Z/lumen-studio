@@ -215,7 +215,7 @@ def managed_test_environment():
             f"{API_URL}/health",
             backend_process,
             "Rust API",
-            timeout=180,
+            timeout=360,
             log_path=backend_log,
         )
 

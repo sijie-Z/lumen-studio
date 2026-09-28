@@ -227,6 +227,33 @@ def probe_self_booking_and_duration() -> None:
             f"got {seconds_status}: {seconds_body}"
         )
 
+    precision_cases = [
+        ("one millisecond over", "2027-01-15T10:00:00Z", "2027-01-15T12:00:00.001Z", 400),
+        ("one millisecond under", "2027-01-16T10:00:00Z", "2027-01-16T11:59:59.999Z", 400),
+        ("one nanosecond over", "2027-01-17T10:00:00Z", "2027-01-17T12:00:00.000000001Z", 400),
+        ("exact nanoseconds zero", "2027-01-18T10:00:00.000000000Z", "2027-01-18T12:00:00.000000000Z", 200),
+    ]
+    for label, start, end, expected in precision_cases:
+        precision_status, precision_body = call(
+            "POST",
+            "/appointments",
+            {
+                "service_id": service["id"],
+                "start_time": start,
+                "end_time": end,
+                "location": "杭州",
+                "notes": f"audit precision {label}",
+            },
+            token=customer_token,
+        )
+        print(f"PROBE duration_precision_{label.replace(' ', '_')}")
+        print("  result:", precision_status, precision_body.get("code"), precision_body.get("message"))
+        if precision_status != expected:
+            FAILURES.append(
+                f"duration precision {label}: expected {expected}, "
+                f"got {precision_status}: {precision_body}"
+            )
+
 
 def probe_non_creator_work_creation() -> None:
     token = login("customer", "customer123")
@@ -254,7 +281,9 @@ def probe_service_duration_bounds() -> None:
     expect_status(types_status, 200, "service types", types_body)
     type_id = types_body["data"][0]["id"]
 
-    for duration in (30, 600):
+    invalid_durations = (0, -1, 30, 59, 481, 600)
+    valid_durations = (60, 480)
+    for duration in (*invalid_durations, *valid_durations):
         status, body = call(
             "POST",
             "/services",
@@ -272,17 +301,18 @@ def probe_service_duration_bounds() -> None:
         )
         print(f"PROBE service_duration_{duration}")
         print("  result:", status, body.get("code"), body.get("message"))
-        if status != 400:
+        expected = 400 if duration in invalid_durations else 200
+        if status != expected:
             FAILURES.append(
-                f"service duration {duration} should be rejected, got {status}: {body}"
+                f"service duration {duration} should return {expected}, got {status}: {body}"
             )
-            if status == 200 and body.get("data", {}).get("id"):
-                call(
-                    "PATCH",
-                    f"/services/{body['data']['id']}",
-                    {"is_active": False},
-                    token=token,
-                )
+        if status == 200 and body.get("data", {}).get("id"):
+            call(
+                "PATCH",
+                f"/services/{body['data']['id']}",
+                {"is_active": False},
+                token=token,
+            )
 
 
 def probe_ai_public_abuse() -> None:
@@ -554,49 +584,56 @@ def probe_withdrawal_review_concurrency() -> None:
         token=creator_token,
     )
     expect_status(recharge_status, 200, "withdrawal probe recharge", recharge_body)
-    before_apply_status, before_apply = call("GET", "/auth/me", token=creator_token)
-    expect_status(before_apply_status, 200, "withdrawal balance before apply", before_apply)
-    balance_before_apply = Decimal(str(before_apply["data"]["balance"]))
 
-    withdrawal_status, withdrawal_body = call(
-        "POST",
-        "/withdrawals",
-        {
-            "amount": "100.00",
-            "account_info": {"account": "audit:withdrawal"},
-        },
-        token=creator_token,
-    )
-    expect_status(withdrawal_status, 200, "withdrawal apply", withdrawal_body)
-    withdrawal_id = withdrawal_body["data"]["id"]
+    for iteration in range(1, 4):
+        current_status, current = call("GET", "/auth/me", token=creator_token)
+        expect_status(current_status, 200, "withdrawal balance before iteration", current)
+        balance_before = Decimal(str(current["data"]["balance"]))
 
-    def reject_once():
-        return call(
-            "PATCH",
-            f"/admin/withdrawals/{withdrawal_id}",
-            {"approve": False, "note": "audit concurrent reject"},
-            token=admin_token,
+        withdrawal_status, withdrawal_body = call(
+            "POST",
+            "/withdrawals",
+            {
+                "amount": "100.00",
+                "account_info": {"account": f"audit:withdrawal:{iteration}"},
+            },
+            token=creator_token,
         )
+        expect_status(withdrawal_status, 200, "withdrawal apply", withdrawal_body)
+        withdrawal_id = withdrawal_body["data"]["id"]
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        results = list(executor.map(lambda _: reject_once(), range(2)))
-    statuses = sorted(status for status, _ in results)
-    if statuses != [200, 409]:
-        FAILURES.append(f"concurrent withdrawal review statuses: {results}")
+        def reject_once():
+            return call(
+                "PATCH",
+                f"/admin/withdrawals/{withdrawal_id}",
+                {"approve": False, "note": "audit concurrent reject"},
+                token=admin_token,
+            )
 
-    after_status, after_body = call("GET", "/auth/me", token=creator_token)
-    expect_status(after_status, 200, "withdrawal balance after review", after_body)
-    balance_after = Decimal(str(after_body["data"]["balance"]))
-    assert balance_after == balance_before_apply, (
-        f"withdrawal balance mismatch: {balance_after} != {balance_before_apply}"
-    )
-    print("PROBE withdrawal_review_concurrency")
-    print("  statuses:", statuses)
-    print("  balance_before_apply:", balance_before_apply, "balance_after:", balance_after)
-    if statuses == [200, 409]:
-        print("  PASS: one review wins and balance is refunded exactly once")
-    else:
-        print("  FAIL: concurrent loser returned 500 instead of 409; balance remained correct")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            results = list(executor.map(lambda _: reject_once(), range(2)))
+        statuses = sorted(status for status, _ in results)
+        if statuses != [200, 409]:
+            FAILURES.append(
+                f"concurrent withdrawal review iteration {iteration} statuses: {results}"
+            )
+
+        after_status, after_body = call("GET", "/auth/me", token=creator_token)
+        expect_status(after_status, 200, "withdrawal balance after review", after_body)
+        balance_after = Decimal(str(after_body["data"]["balance"]))
+        if balance_after != balance_before:
+            FAILURES.append(
+                "withdrawal balance mismatch on iteration "
+                f"{iteration}: {balance_after} != {balance_before}"
+            )
+        print(f"PROBE withdrawal_review_concurrency_iteration_{iteration}")
+        print("  statuses:", statuses)
+        print("  balance_before:", balance_before, "balance_after:", balance_after)
+        if statuses == [200, 409] and balance_after == balance_before:
+            print("  PASS: one review wins and balance is refunded exactly once")
+        else:
+            print("  FAIL: concurrent review statuses or balance were incorrect")
+
 
 
 def main() -> None:

@@ -179,3 +179,12 @@
 - **Summary**: Closed three adversarial-review findings: appointment duration now requires exact end-start equality so 12:00:59 cannot pass as 120 minutes; service creation rejects durations outside 60-480 minutes; SQLite lock, busy, and deadlock errors map to retryable 409 conflicts across the shared error boundary, with concurrent API review regression proving 200+409 and a single refund. cargo test --workspace passed 48 tests; pnpm build passed 1846 modules; git diff --check passed.
 - **Next**: Submit for adversarial re-review after exact duration validation, service duration bounds, and SQLite deadlock-to-409 mapping
 
+### [2026-09-28 19:52] main — Third-round adversarial re-review approved
+
+- **Task**: Verify commit 562e0a5e and attempt bypasses
+- **Branch**: main
+- **Files**: web/scripts/audit_probe.py; web/scripts/test_runtime.py; .project
+- **Verification**: Exact-duration matrix rejected 120m59s, +1ms, -1ms, and +1ns while accepting exact 120m; service duration matrix rejected 0/-1/30/59/481/600 and accepted 60/480; three concurrent withdrawal review runs returned 200+409 with balance refunded exactly once. Previous security checks, 48 Rust tests, frontend build, regression2 full-flow E2E, and regression3 role-route E2E all passed. Main database fingerprint remained unchanged.
+- **Risks**: Postgres-specific row locking is still only statically reviewed because no live Postgres test instance is available.
+- **Next**: Add Postgres integration coverage for concurrent withdrawal review when infrastructure is available; continue development.
+

@@ -27,8 +27,11 @@
 - [x] Introduce first-class customer/creator capabilities without blocking creator onboarding
 - [x] Address adversarial security and consistency findings
 - [x] Close remaining validation and concurrency gaps
+- [x] Third-round adversarial re-review: exact duration, duration bounds, and concurrent withdrawal review approved
 
 ## Recent Changes
+- web/scripts/audit_probe.py
+- web/scripts/test_runtime.py
 - backend/crates/api/src/routes/mod.rs
 - backend/crates/services/tests/withdrawal_flow.rs
 - backend/crates/common/src/error.rs
@@ -46,6 +49,7 @@
 - Main session sandbox exec is broken (CreateProcessWithLogonW 1058); work is being driven via sub-agents
 - Browser-level three-role routing E2E after roles response change is still pending
 - Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment
+- Postgres-specific row locking remains statically reviewed but not executed against a live Postgres instance
 
 ## Next Step
-- Submit for adversarial re-review after exact duration validation, service duration bounds, and SQLite deadlock-to-409 mapping
+- Add a Postgres integration test for concurrent withdrawal review when a test database is available; continue product development

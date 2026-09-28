@@ -2,7 +2,6 @@
 
 ## TODO
 - Add browser coverage for pagination, search, filters, and creator onboarding
-- Adversarial re-review and browser regression for hardened security boundaries
 
 ## DOING
 - (empty)
@@ -34,4 +33,5 @@
 - Archive legacy code under legacy/
 - Address adversarial security and consistency findings
 - Close remaining validation and concurrency gaps
+- Third-round adversarial re-review for exact duration, service duration bounds, and concurrent withdrawal review
 
