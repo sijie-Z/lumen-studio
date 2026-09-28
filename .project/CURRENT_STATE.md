@@ -23,8 +23,11 @@
 - [x] Polish creator, work detail, and home pages
 - [x] Paginate list APIs and connect the existing PaginatedResponse contract
 - [x] Browser regression for pagination and full flow
+- [x] Archive legacy code under legacy/
 
 ## Recent Changes
+- legacy/
+- .gitignore
 - web/scripts/regression2_e2e.py
 - backend/crates/api/src/routes/mod.rs
 - backend/crates/api/src/routes/creators.rs
@@ -33,8 +36,6 @@
 - web/src/pages/home.tsx
 - web/src/pages/work-detail.tsx
 - web/src/pages/creator-profile.tsx
-- web/scripts/regression_e2e.py
-- web/src/pages/account.tsx
 
 ## Known Issues
 - Rust MSVC linker missing — need VS Build Tools or GNU toolchain
@@ -44,4 +45,4 @@
 - Browser regression uses the installed Chrome channel because the bundled Playwright Chromium crashed in this Windows environment
 
 ## Next Step
-- Run the regression suite after transaction, role, and creator profile changes; next add first-class customer/creator capabilities.
+- Keep legacy/ ignored as an archive; make the next structural pass by retiring root editor/cache directories only after confirming nothing active depends on them.

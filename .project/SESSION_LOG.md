@@ -141,3 +141,10 @@
 - **Summary**: Ran isolated browser regression for pagination, filters, route guards, full booking/payment/review flow, and paid cancellation refund. Fixed public list query deserialization that returned 400 and added API regression coverage. cargo test --workspace and pnpm build passed; main database fingerprint unchanged.
 - **Next**: Run the regression suite after transaction, role, and creator profile changes; next add first-class customer/creator capabilities.
 
+### [2026-09-28 15:34] main — Archive legacy code under legacy/
+
+- **Task**: Archive legacy code under legacy/
+- **Branch**: main
+- **Summary**: Archived remaining legacy Flask runtime directories under legacy/flask_backend, verified the only active code roots are backend/ and web/, and passed cargo check plus pnpm build.
+- **Next**: Keep legacy/ ignored as an archive; make the next structural pass by retiring root editor/cache directories only after confirming nothing active depends on them.
+

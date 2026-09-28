@@ -30,4 +30,5 @@
 - Full browser regression for guarded layouts and refund flow
 - Polish creator, work detail, and home pages
 - Browser regression for pagination and full flow
+- Archive legacy code under legacy/
 

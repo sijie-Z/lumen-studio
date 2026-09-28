@@ -134,6 +134,12 @@
       "status": "done",
       "started": "2026-09-28 15:30",
       "finished": "2026-09-28 15:31"
+    },
+    {
+      "name": "Archive legacy code under legacy/",
+      "status": "done",
+      "started": "2026-09-28 15:33",
+      "finished": "2026-09-28 15:34"
     }
   ]
 }

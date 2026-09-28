@@ -45,3 +45,4 @@ uploads/
 .claude/
 .trae/
 package-lock.json
+legacy/
